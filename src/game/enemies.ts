@@ -4,7 +4,7 @@ export const ENEMY_DEFS: Record<EnemyTypeId, EnemyDef> = {
   grunt: {
     id: 'grunt',
     name: 'Maraudeur',
-    color: '#7f9c6a',
+    color: '#6fbf5a',
     baseHp: 40,
     speed: 1.4,
     armor: 0,
@@ -15,7 +15,7 @@ export const ENEMY_DEFS: Record<EnemyTypeId, EnemyDef> = {
   runner: {
     id: 'runner',
     name: 'Éclaireur',
-    color: '#e8d44d',
+    color: '#ffd93d',
     baseHp: 22,
     speed: 2.6,
     armor: 0,
@@ -26,7 +26,7 @@ export const ENEMY_DEFS: Record<EnemyTypeId, EnemyDef> = {
   tank: {
     id: 'tank',
     name: 'Blindé',
-    color: '#8a5a3b',
+    color: '#a8622f',
     baseHp: 140,
     speed: 0.8,
     armor: 4,
@@ -37,7 +37,7 @@ export const ENEMY_DEFS: Record<EnemyTypeId, EnemyDef> = {
   boss: {
     id: 'boss',
     name: 'Colosse',
-    color: '#b32d2d',
+    color: '#e63946',
     baseHp: 900,
     speed: 0.6,
     armor: 6,

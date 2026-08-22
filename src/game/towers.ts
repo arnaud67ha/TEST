@@ -5,7 +5,7 @@ export const TOWER_DEFS: Record<TowerTypeId, TowerDef> = {
     id: 'archer',
     name: 'Archer',
     description: 'Cadence rapide, cible un seul ennemi. Bon partout.',
-    color: '#4a90d9',
+    color: '#2f8fe6',
     accentColor: '#c9e3ff',
     sellRatio: 0.6,
     levels: [
@@ -18,7 +18,7 @@ export const TOWER_DEFS: Record<TowerTypeId, TowerDef> = {
     id: 'cannon',
     name: 'Canon',
     description: 'Tir lent mais explosif, touche les ennemis groupés.',
-    color: '#d9701a',
+    color: '#ff7a1a',
     accentColor: '#ffd7ad',
     sellRatio: 0.6,
     levels: [
@@ -31,7 +31,7 @@ export const TOWER_DEFS: Record<TowerTypeId, TowerDef> = {
     id: 'frost',
     name: 'Givre',
     description: 'Faibles dégâts mais ralentit durablement les ennemis.',
-    color: '#5fd0e0',
+    color: '#3fe0f0',
     accentColor: '#e3fbff',
     sellRatio: 0.6,
     levels: [
@@ -44,7 +44,7 @@ export const TOWER_DEFS: Record<TowerTypeId, TowerDef> = {
     id: 'tesla',
     name: 'Tesla',
     description: "Foudre chaînée qui rebondit sur plusieurs cibles proches.",
-    color: '#9b5cf6',
+    color: '#a855f7',
     accentColor: '#ecdcff',
     sellRatio: 0.6,
     levels: [

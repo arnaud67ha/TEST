@@ -60,8 +60,12 @@ export class SceneManager {
     this.camera.lookAt(0, 0, 0);
     this.hpBillboardQuat.copy(this.camera.quaternion);
 
-    this.scene.add(new THREE.HemisphereLight('#d6d9ff', '#241a4f', 1.1));
-    const sun = new THREE.DirectionalLight('#fff2d6', 1.1);
+    // Toon shading reads best with one clear key light and just enough
+    // ambient to keep shadow faces out of pure black — stacking several
+    // bright lights pushes every gradient band to its brightest step and
+    // washes the whole scene out to pale, flat color.
+    this.scene.add(new THREE.AmbientLight('#584a9e', 1.0));
+    const sun = new THREE.DirectionalLight('#fff2d6', 1.15);
     sun.position.set(12, 22, 10);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
@@ -70,9 +74,6 @@ export class SceneManager {
     sun.shadow.camera.top = 16;
     sun.shadow.camera.bottom = -16;
     this.scene.add(sun);
-    const fill = new THREE.DirectionalLight('#a9b6ff', 0.55);
-    fill.position.set(-10, 12, -8);
-    this.scene.add(fill);
 
     this.scene.add(this.levelGroup, this.entitiesGroup);
 
@@ -114,10 +115,10 @@ export class SceneManager {
     for (let y = 0; y < this.gridHeight; y++) {
       for (let x = 0; x < this.gridWidth; x++) {
         const onPath = state.isOnPath(x, y);
-        const color = onPath ? '#5a4630' : (x + y) % 2 === 0 ? '#274a2e' : '#2c522f';
+        const color = onPath ? '#8a6a3d' : (x + y) % 2 === 0 ? '#3f8a49' : '#469650';
         const tile = buildTileMesh(color);
         const p = this.gridToWorld(x, y);
-        tile.position.set(p.x, -0.09, p.z);
+        tile.position.set(p.x, -0.12, p.z);
         this.levelGroup.add(tile);
       }
     }

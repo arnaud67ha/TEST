@@ -49,6 +49,7 @@ export class UIManager {
   private buildHintEl!: HTMLElement;
   private towerButtons = new Map<TowerTypeId, HTMLButtonElement>();
   private popupHost = el('div');
+  private popupRefs: { towerId: string; level: number; upgradeBtn: HTMLButtonElement; sellBtn: HTMLButtonElement } | null = null;
 
   onPlay: (() => void) | null = null;
   onResetProgress: (() => void) | null = null;
@@ -170,6 +171,7 @@ export class UIManager {
     this.waveBtn.onclick = () => this.onStartWave?.();
 
     this.popupHost.innerHTML = '';
+    this.popupRefs = null;
     bottom.append(this.buildHintEl, this.popupHost, shop, this.waveBtn);
 
     this.hudLayer.append(top, bottom);
@@ -215,47 +217,63 @@ export class UIManager {
   }
 
   private renderTowerPopup(state: GameState, tower: PlacedTower | null): void {
-    this.popupHost.innerHTML = '';
-    if (!tower) return;
+    if (!tower) {
+      if (this.popupRefs) {
+        this.popupHost.innerHTML = '';
+        this.popupRefs = null;
+      }
+      return;
+    }
+
     const def = TOWER_DEFS[tower.type];
-    const levelStats = def.levels[tower.level - 1];
-    const popup = el('div', 'tower-popup');
 
-    const header = el('div', 'tower-popup-header');
-    header.append(el('span', undefined, `${def.name} — Niv. ${tower.level}`));
-    popup.appendChild(header);
+    // Rebuild the DOM only when the selection itself changes (a different
+    // tower, or a level-up) — not every animation frame. Recreating these
+    // nodes each frame would detach the buttons mid-tap on touch devices,
+    // silently swallowing every "Améliorer" press.
+    if (!this.popupRefs || this.popupRefs.towerId !== tower.id || this.popupRefs.level !== tower.level) {
+      this.popupHost.innerHTML = '';
+      const levelStats = def.levels[tower.level - 1];
+      const popup = el('div', 'tower-popup');
 
-    const statsGrid = el('div', 'tower-popup-stats');
-    statsGrid.append(
-      statLine('Dégâts', `${levelStats.damage}`),
-      statLine('Portée', levelStats.range.toFixed(1)),
-      statLine('Cadence', `${levelStats.fireRate.toFixed(1)}/s`),
-    );
-    const special = towerSpecialLine(tower.type, levelStats);
-    if (special) statsGrid.appendChild(statLine('Spécial', special));
-    popup.appendChild(statsGrid);
+      const header = el('div', 'tower-popup-header');
+      header.append(el('span', undefined, `${def.name} — Niv. ${tower.level}`));
+      popup.appendChild(header);
 
-    const actions = el('div', 'tower-popup-actions');
+      const statsGrid = el('div', 'tower-popup-stats');
+      statsGrid.append(
+        statLine('Dégâts', `${levelStats.damage}`),
+        statLine('Portée', levelStats.range.toFixed(1)),
+        statLine('Cadence', `${levelStats.fireRate.toFixed(1)}/s`),
+      );
+      const special = towerSpecialLine(tower.type, levelStats);
+      if (special) statsGrid.appendChild(statLine('Spécial', special));
+      popup.appendChild(statsGrid);
+
+      const actions = el('div', 'tower-popup-actions');
+      const upgradeBtn = el('button', 'btn-upgrade');
+      upgradeBtn.onclick = () => this.onUpgradeTower?.(tower.id);
+
+      const sellBtn = el('button', 'btn-sell');
+      sellBtn.onclick = () => this.onSellTower?.(tower.id);
+
+      const closeBtn = el('button', 'btn-close', '✕');
+      closeBtn.onclick = () => this.onCloseTowerPopup?.();
+
+      actions.append(upgradeBtn, sellBtn, closeBtn);
+      popup.appendChild(actions);
+      this.popupHost.appendChild(popup);
+
+      this.popupRefs = { towerId: tower.id, level: tower.level, upgradeBtn, sellBtn };
+    }
+
+    // Cheap per-frame refresh: text/disabled state only, nodes stay put.
     const upgradeCost = state.upgradeCostFor(tower);
-    const upgradeBtn = el(
-      'button',
-      'btn-upgrade',
-      upgradeCost === null ? 'Niveau max' : `Améliorer (${upgradeCost}🪙)`,
-    );
-    upgradeBtn.disabled = upgradeCost === null || state.gold < upgradeCost;
-    upgradeBtn.onclick = () => this.onUpgradeTower?.(tower.id);
+    this.popupRefs.upgradeBtn.textContent = upgradeCost === null ? 'Niveau max' : `Améliorer (${upgradeCost}🪙)`;
+    this.popupRefs.upgradeBtn.disabled = upgradeCost === null || state.gold < upgradeCost;
 
     const refund = Math.round(tower.investedGold * def.sellRatio);
-    const sellBtn = el('button', 'btn-sell', `Vendre (+${refund}🪙)`);
-    sellBtn.onclick = () => this.onSellTower?.(tower.id);
-
-    const closeBtn = el('button', 'btn-close', '✕');
-    closeBtn.onclick = () => this.onCloseTowerPopup?.();
-
-    actions.append(upgradeBtn, sellBtn, closeBtn);
-    popup.appendChild(actions);
-
-    this.popupHost.appendChild(popup);
+    this.popupRefs.sellBtn.textContent = `Vendre (+${refund}🪙)`;
   }
 
   // --------------------------------------------------------------- modals
