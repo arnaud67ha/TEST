@@ -16,6 +16,9 @@ import rock2Url from '../assets/medieval-rts/rock2.png';
 import rock3Url from '../assets/medieval-rts/rock3.png';
 import rock4Url from '../assets/medieval-rts/rock4.png';
 import rock5Url from '../assets/medieval-rts/rock5.png';
+// Orc: 0x72's "Dungeon Tileset II" (CC0 1.0), via github.com/vickean/phaser_dungeon_crawler
+// (bundles the pack's enemies/lizard_f atlas — see src/assets/monsters/SOURCE.txt).
+import orcUrl from '../assets/monsters/orc.png';
 
 function img(src: string): HTMLImageElement {
   const el = new Image();
@@ -29,9 +32,10 @@ export const sprites = {
   castle: img(castleUrl),
   trees: [img(tree1Url), img(tree2Url), img(tree3Url), img(tree4Url)],
   rocks: [img(rock1Url), img(rock2Url), img(rock3Url), img(rock4Url), img(rock5Url)],
+  orc: img(orcUrl),
 };
 
-const allImages = [sprites.grass, sprites.dirt, sprites.castle, ...sprites.trees, ...sprites.rocks];
+const allImages = [sprites.grass, sprites.dirt, sprites.castle, sprites.orc, ...sprites.trees, ...sprites.rocks];
 
 let readyPromise: Promise<void> | null = null;
 

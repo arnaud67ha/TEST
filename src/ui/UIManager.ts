@@ -96,7 +96,11 @@ export class UIManager {
     };
     screen.append(resetBtn);
 
-    const credit = el('p', 'credit', 'Décors : pack "Medieval RTS" par Kenney (kenney.nl), CC0');
+    const credit = el(
+      'p',
+      'credit',
+      'Décors : "Medieval RTS" par Kenney · Orc : "Dungeon Tileset II" par 0x72 — CC0',
+    );
     screen.append(credit);
 
     this.screenLayer.appendChild(screen);

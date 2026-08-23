@@ -275,22 +275,18 @@ export function drawEnemy(
 
   switch (type) {
     case 'orc': {
-      drawShadow(ctx, 0, r * 0.15, r * 1.1, r * 0.5);
-      const grad = ctx.createLinearGradient(0, -r * 2.2, 0, 0);
-      grad.addColorStop(0, shade(color, 0.15));
-      grad.addColorStop(1, shade(color, -0.15));
-      ctx.fillStyle = grad;
-      roundRect(ctx, -r * 0.7, -r * 1.9, r * 1.4, r * 1.6, r * 0.4);
-      ctx.fill();
-      ctx.fillStyle = dark;
-      ctx.beginPath();
-      ctx.arc(0, -r * 2.15, r * 0.55, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#5c5a63';
-      roundRect(ctx, -r * 1.05, -r * 1.7, r * 0.5, r * 0.4, r * 0.12);
-      ctx.fill();
-      roundRect(ctx, r * 0.55, -r * 1.7, r * 0.5, r * 0.4, r * 0.12);
-      ctx.fill();
+      // Real pixel-art sprite (0x72's CC0 Dungeon Tileset II) instead of a
+      // hand-drawn shape — see src/assets/monsters/SOURCE.txt.
+      const img = sprites.orc;
+      drawShadow(ctx, 0, r * 0.1, r * 1.05, r * 0.42);
+      if (img.complete && img.naturalWidth > 0) {
+        const h = s * 0.95;
+        const w = h * (img.naturalWidth / img.naturalHeight);
+        const prevSmoothing = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = false; // keep the native pixel-art crispness when scaled up
+        ctx.drawImage(img, -w / 2, -h, w, h);
+        ctx.imageSmoothingEnabled = prevSmoothing;
+      }
       break;
     }
     case 'goblin': {
