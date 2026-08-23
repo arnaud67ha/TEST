@@ -3,9 +3,11 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const src = readFileSync('dist-artifact/index.html', 'utf8');
 const scriptMatch = src.match(/<script[^>]*>[\s\S]*<\/script>/);
 const styleMatch = src.match(/<style[^>]*>[\s\S]*<\/style>/);
+const fontLinks = [...src.matchAll(/<link[^>]*fonts\.g(?:oogleapis|static)[^>]*>/g)].map((m) => m[0]);
 if (!scriptMatch || !styleMatch) throw new Error('Could not find script/style block');
 
 const out = `<title>Tower Keep — Aperçu</title>
+${fontLinks.join('\n')}
 ${styleMatch[0]}
 <div id="app"></div>
 ${scriptMatch[0]}

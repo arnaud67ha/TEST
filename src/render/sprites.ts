@@ -24,6 +24,19 @@ function alpha(hex: string, a: number): string {
   return `rgba(${r},${g},${b},${a})`;
 }
 
+/** Outlines the current path in dark ink, then fills it — the stroke's
+ * outer half stays visible as a thin rim once the fill covers the inner
+ * half, giving hand-drawn shapes the same "inked outline" read as the
+ * pixel-art sprites they sit next to. */
+function fillOutlined(ctx: CanvasRenderingContext2D, fillStyle: string | CanvasGradient, lineWidth: number): void {
+  ctx.strokeStyle = 'rgba(20,12,6,0.65)';
+  ctx.lineWidth = lineWidth;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+  ctx.fillStyle = fillStyle;
+  ctx.fill();
+}
+
 /** Deterministic 0..1 value from coords — used to scatter/vary scenery without storing any RNG state. */
 export function hash2(x: number, y: number): number {
   const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
@@ -122,12 +135,11 @@ export function drawTower(
 
   drawShadow(ctx, cx, cy + s * 0.04, s * 0.34, s * 0.15);
   const baseGrad = ctx.createRadialGradient(cx, cy - s * 0.02, s * 0.05, cx, cy, s * 0.32);
-  baseGrad.addColorStop(0, shade('#867d6d', 0.15));
-  baseGrad.addColorStop(1, shade('#867d6d', -0.15));
-  ctx.fillStyle = baseGrad;
+  baseGrad.addColorStop(0, shade('#867d6d', 0.18));
+  baseGrad.addColorStop(1, shade('#867d6d', -0.2));
   ctx.beginPath();
   ctx.ellipse(cx, cy, s * 0.32, s * 0.16, 0, 0, Math.PI * 2);
-  ctx.fill();
+  fillOutlined(ctx, baseGrad, s * 0.025);
 
   const groundY = cy - s * 0.03;
 
@@ -136,18 +148,30 @@ export function drawTower(
       const bodyH = s * 0.55 * scale;
       const r = s * 0.22;
       const grad = ctx.createLinearGradient(cx - r, groundY - bodyH, cx + r, groundY);
-      grad.addColorStop(0, shade(color, 0.18));
-      grad.addColorStop(1, shade(color, -0.2));
-      ctx.fillStyle = grad;
+      grad.addColorStop(0, shade(color, 0.22));
+      grad.addColorStop(1, shade(color, -0.25));
       ctx.beginPath();
       ctx.moveTo(cx - r, groundY);
       ctx.lineTo(cx - r * 0.85, groundY - bodyH);
       ctx.lineTo(cx + r * 0.85, groundY - bodyH);
       ctx.lineTo(cx + r, groundY);
       ctx.closePath();
-      ctx.fill();
+      fillOutlined(ctx, grad, s * 0.032);
 
-      ctx.fillStyle = shade(color, -0.3);
+      // mortar lines: a coursed-stone texture instead of a flat gradient fill
+      ctx.strokeStyle = 'rgba(20,12,6,0.25)';
+      ctx.lineWidth = s * 0.012;
+      for (let row = 1; row < 4; row++) {
+        const t = row / 4;
+        const y = groundY - bodyH * t;
+        const rowR = r * 0.85 + (r - r * 0.85) * t;
+        ctx.beginPath();
+        ctx.moveTo(cx - rowR, y);
+        ctx.lineTo(cx + rowR, y);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = shade(color, -0.35);
       for (let i = -2; i <= 2; i++) {
         ctx.fillRect(cx + i * r * 0.36 - s * 0.03, groundY - bodyH - s * 0.08, s * 0.06, s * 0.09);
       }
@@ -191,12 +215,13 @@ export function drawTower(
       ctx.lineTo(ex, ey);
       ctx.stroke();
 
-      ctx.fillStyle = shade(accent, -0.1);
-      ctx.fillRect(wx - s * 0.09, wy - s * 0.09, s * 0.18, s * 0.18);
-      ctx.fillStyle = shade('#867d6d', 0.1);
+      ctx.beginPath();
+      ctx.rect(wx - s * 0.09, wy - s * 0.09, s * 0.18, s * 0.18);
+      fillOutlined(ctx, shade(accent, -0.1), s * 0.025);
+
       ctx.beginPath();
       ctx.arc(ex, ey, s * 0.09, 0, Math.PI * 2);
-      ctx.fill();
+      fillOutlined(ctx, shade('#867d6d', 0.1), s * 0.025);
 
       ctx.fillStyle = '#2a2530';
       ctx.beginPath();
@@ -209,20 +234,18 @@ export function drawTower(
       const bodyH = s * 0.5 * scale;
       const r = s * 0.2;
       const grad = ctx.createLinearGradient(cx - r, groundY - bodyH, cx + r, groundY);
-      grad.addColorStop(0, shade(color, 0.16));
-      grad.addColorStop(1, shade(color, -0.2));
-      ctx.fillStyle = grad;
+      grad.addColorStop(0, shade(color, 0.2));
+      grad.addColorStop(1, shade(color, -0.25));
       ctx.beginPath();
       ctx.moveTo(cx, groundY - bodyH);
       ctx.lineTo(cx + r, groundY);
       ctx.lineTo(cx - r, groundY);
       ctx.closePath();
-      ctx.fill();
+      fillOutlined(ctx, grad, s * 0.03);
 
-      ctx.fillStyle = shade(color, -0.35);
       ctx.beginPath();
       ctx.arc(cx, groundY - bodyH - s * 0.02, s * 0.1, 0, Math.PI * 2);
-      ctx.fill();
+      fillOutlined(ctx, shade(color, -0.4), s * 0.025);
 
       const glowY = groundY - bodyH - (type === 'mage' ? s * 0.32 : s * 0.05);
       const glowX = type === 'mage' ? cx + s * 0.14 : cx;
@@ -292,11 +315,10 @@ export function drawEnemy(
     case 'goblin': {
       drawShadow(ctx, 0, r * 0.1, r * 1.15, r * 0.45);
       const grad = ctx.createLinearGradient(0, -r * 1.5, 0, 0);
-      grad.addColorStop(0, shade(color, 0.15));
-      grad.addColorStop(1, shade(color, -0.15));
-      ctx.fillStyle = grad;
+      grad.addColorStop(0, shade(color, 0.18));
+      grad.addColorStop(1, shade(color, -0.2));
       roundRect(ctx, -r * 1.05, -r * 1.3, r * 1.7, r * 1.05, r * 0.4);
-      ctx.fill();
+      fillOutlined(ctx, grad, r * 0.14);
       ctx.fillStyle = dark;
       ctx.beginPath();
       ctx.moveTo(r * 0.5, -r * 1.05);
@@ -315,14 +337,12 @@ export function drawEnemy(
     case 'troll': {
       drawShadow(ctx, 0, r * 0.15, r * 1.3, r * 0.55);
       const grad = ctx.createLinearGradient(0, -r * 2.4, 0, 0);
-      grad.addColorStop(0, shade(color, 0.15));
-      grad.addColorStop(1, shade(color, -0.15));
-      ctx.fillStyle = grad;
+      grad.addColorStop(0, shade(color, 0.18));
+      grad.addColorStop(1, shade(color, -0.2));
       roundRect(ctx, -r, -r * 2.1, r * 2, r * 1.9, r * 0.35);
-      ctx.fill();
-      ctx.fillStyle = dark;
+      fillOutlined(ctx, grad, r * 0.14);
       roundRect(ctx, -r * 0.6, -r * 2.5, r * 1.2, r * 0.65, r * 0.2);
-      ctx.fill();
+      fillOutlined(ctx, dark, r * 0.12);
       ctx.strokeStyle = '#5a4a2e';
       ctx.lineWidth = r * 0.35;
       ctx.lineCap = 'round';
@@ -357,12 +377,11 @@ export function drawEnemy(
       ctx.fill();
 
       const bodyGrad = ctx.createRadialGradient(-r * 0.2, -r * 1.4, r * 0.2, 0, -r * 1.1, r * 1.6);
-      bodyGrad.addColorStop(0, shade(color, 0.2));
-      bodyGrad.addColorStop(1, shade(color, -0.1));
-      ctx.fillStyle = bodyGrad;
+      bodyGrad.addColorStop(0, shade(color, 0.24));
+      bodyGrad.addColorStop(1, shade(color, -0.15));
       ctx.beginPath();
       ctx.ellipse(0, -r * 1.1, r * 1.5, r * 1.15, 0, 0, Math.PI * 2);
-      ctx.fill();
+      fillOutlined(ctx, bodyGrad, r * 0.1);
 
       ctx.fillStyle = shade(color, 0.05);
       ctx.beginPath();

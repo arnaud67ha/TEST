@@ -13,8 +13,8 @@ export default defineConfig({
         start_url: '/',
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#1b1240',
-        theme_color: '#1b1240',
+        background_color: '#2a1c10',
+        theme_color: '#2a1c10',
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
