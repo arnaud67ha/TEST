@@ -4,7 +4,7 @@ import { SaveManager } from './game/SaveManager.ts';
 import { LEVELS } from './game/levels.ts';
 import { TOWER_DEFS } from './game/towers.ts';
 import type { TowerTypeId } from './game/types.ts';
-import { SceneManager } from './render/SceneManager.ts';
+import { Canvas2DRenderer } from './render/Canvas2DRenderer.ts';
 import { UIManager } from './ui/UIManager.ts';
 
 const app = document.getElementById('app')!;
@@ -15,7 +15,7 @@ uiLayer.className = 'ui-layer';
 app.append(canvasContainer, uiLayer);
 
 const saveManager = new SaveManager();
-const sceneManager = new SceneManager(canvasContainer);
+const sceneManager = new Canvas2DRenderer(canvasContainer);
 const ui = new UIManager(uiLayer, saveManager);
 
 let gameState: GameState | null = null;
@@ -111,7 +111,6 @@ function loop(now: number): void {
   if (gameState && !paused) {
     const wasPlaying = gameState.outcome === 'playing';
     gameState.update(dt);
-    sceneManager.sync(gameState);
 
     const selectedTower: PlacedTower | null = selectedTowerId
       ? gameState.towers.find((t) => t.id === selectedTowerId) ?? null
@@ -133,7 +132,7 @@ function loop(now: number): void {
     }
   }
 
-  sceneManager.render();
+  if (gameState) sceneManager.render(gameState);
   requestAnimationFrame(loop);
 }
 
