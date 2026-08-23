@@ -84,7 +84,7 @@ export class UIManager {
     const screen = el('div', 'screen');
     screen.append(
       el('h1', 'title', 'Tower Keep'),
-      el('p', 'subtitle', 'Défends ta forteresse — pseudo-3D, uniquement pour toi.'),
+      el('p', 'subtitle', 'Défends ta forteresse médiévale — uniquement pour toi.'),
     );
     const playBtn = el('button', 'primary-btn', 'Jouer');
     playBtn.onclick = () => this.onPlay?.();
@@ -95,6 +95,9 @@ export class UIManager {
       if (confirm('Réinitialiser toute la progression ?')) this.onResetProgress?.();
     };
     screen.append(resetBtn);
+
+    const credit = el('p', 'credit', 'Décors : pack "Medieval RTS" par Kenney (kenney.nl), CC0');
+    screen.append(credit);
 
     this.screenLayer.appendChild(screen);
   }

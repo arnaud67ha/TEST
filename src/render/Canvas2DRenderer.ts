@@ -3,6 +3,7 @@ import type { Vec2 } from '../game/types.ts';
 import { TOWER_DEFS } from '../game/towers.ts';
 import { ENEMY_DEFS } from '../game/enemies.ts';
 import { bakeGround, drawCastle, drawEnemy, drawHealthBar, drawProjectile, drawRangeRing, drawRock, drawTower, drawTree, hash2 } from './sprites.ts';
+import { assetsReady } from './assets.ts';
 
 interface Decoration {
   x: number;
@@ -65,13 +66,14 @@ export class Canvas2DRenderer {
     return { x: this.originX + (gx + 0.5) * this.tileSize, y: this.originY + (gy + 0.5) * this.tileSize };
   }
 
-  loadLevel(state: GameState): void {
+  async loadLevel(state: GameState): Promise<void> {
     this.gridWidth = state.level.gridWidth;
     this.gridHeight = state.level.gridHeight;
     const w = this.container.clientWidth;
     const h = this.container.clientHeight;
     if (w > 0 && h > 0) this.computeTransform(w, h);
 
+    await assetsReady();
     this.groundCanvas = bakeGround(this.gridWidth, this.gridHeight, state.level.path);
 
     this.decorations = [];

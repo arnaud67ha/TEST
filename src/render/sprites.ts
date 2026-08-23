@@ -1,6 +1,7 @@
 import type { Vec2, TowerTypeId, EnemyTypeId } from '../game/types.ts';
 import type { TowerDef } from '../game/types.ts';
 import type { EnemyDef } from '../game/types.ts';
+import { sprites } from './assets.ts';
 
 // ---------------------------------------------------------------- color
 
@@ -29,29 +30,22 @@ export function hash2(x: number, y: number): number {
   return s - Math.floor(s);
 }
 
-function mulberry32(seed: number): () => number {
-  let s = seed | 0;
-  return () => {
-    s = (s + 0x6d2b79f5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 // ---------------------------------------------------------------- ground
 
 const GROUND_TILE_PX = 96;
 
-/** Bakes a whole level's terrain to an offscreen canvas: grass with speckle
- * noise and one continuous dirt-road stroke following the real path. */
+/** Bakes a whole level's terrain to an offscreen canvas: Kenney's real
+ * painted grass/dirt textures tiled as patterns, with one continuous
+ * dirt-road stroke following the real path (rounded joins) instead of a
+ * grid of separate tiles. */
 export function bakeGround(gridWidth: number, gridHeight: number, path: Vec2[]): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = gridWidth * GROUND_TILE_PX;
   canvas.height = gridHeight * GROUND_TILE_PX;
   const ctx = canvas.getContext('2d')!;
 
-  ctx.fillStyle = '#5c9c44';
+  const grassPattern = ctx.createPattern(sprites.grass, 'repeat');
+  ctx.fillStyle = grassPattern ?? '#5c9c44';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const toPx = (p: Vec2) => ({ x: (p.x + 0.5) * GROUND_TILE_PX, y: (p.y + 0.5) * GROUND_TILE_PX });
@@ -61,30 +55,15 @@ export function bakeGround(gridWidth: number, gridHeight: number, path: Vec2[]):
 
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  ctx.lineWidth = GROUND_TILE_PX * 0.8;
-  ctx.strokeStyle = 'rgba(55,38,18,0.35)';
-  ctx.stroke(path2d);
-  ctx.lineWidth = GROUND_TILE_PX * 0.64;
-  ctx.strokeStyle = '#ad8049';
+  ctx.lineWidth = GROUND_TILE_PX * 0.82;
+  ctx.strokeStyle = 'rgba(40,25,10,0.4)';
   ctx.stroke(path2d);
 
-  ctx.lineWidth = GROUND_TILE_PX * 0.64;
-  const rand = mulberry32(1337);
-  const speckles = Math.round((canvas.width * canvas.height) / 260);
-  for (let i = 0; i < speckles; i++) {
-    const x = rand() * canvas.width;
-    const y = rand() * canvas.height;
-    const onPath = ctx.isPointInStroke(path2d, x, y);
-    const r = 2 + rand() * 5;
-    if (onPath) {
-      ctx.fillStyle = rand() > 0.5 ? 'rgba(70,48,20,0.16)' : 'rgba(220,190,140,0.14)';
-    } else {
-      ctx.fillStyle = rand() > 0.5 ? 'rgba(255,255,255,0.07)' : 'rgba(20,45,10,0.09)';
-    }
-    ctx.beginPath();
-    ctx.ellipse(x, y, r * 1.6, r, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  const dirtPattern = ctx.createPattern(sprites.dirt, 'repeat');
+  ctx.lineWidth = GROUND_TILE_PX * 0.66;
+  ctx.strokeStyle = dirtPattern ?? '#ad8049';
+  ctx.stroke(path2d);
+
   return canvas;
 }
 
@@ -99,122 +78,31 @@ function drawShadow(ctx: CanvasRenderingContext2D, cx: number, cy: number, rx: n
 
 // ---------------------------------------------------------------- scenery
 
+/** Draws a sprite image anchored so its bottom-center sits at the ground
+ * contact point (cx, cy) — the image's own content extends upward from
+ * there, same convention as the hand-drawn shapes below. */
+function drawSprite(ctx: CanvasRenderingContext2D, image: HTMLImageElement, cx: number, cy: number, w: number, h: number): void {
+  if (!image.complete || image.naturalWidth === 0) return;
+  ctx.drawImage(image, cx - w / 2, cy - h, w, h);
+}
+
 export function drawTree(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number, seed: number): void {
-  const h = s * (0.62 + hash2(seed, 1) * 0.28);
-  drawShadow(ctx, cx, cy + s * 0.06, s * 0.24, s * 0.11);
-
-  ctx.fillStyle = '#5a3d22';
-  ctx.fillRect(cx - s * 0.035, cy - h * 0.1, s * 0.07, h * 0.24);
-
-  const baseGreen = shade('#2f6b34', hash2(seed, 2) * 0.16 - 0.08);
-  const tiers = 3;
-  for (let i = tiers - 1; i >= 0; i--) {
-    const t = i / (tiers - 1);
-    const w = s * 0.56 * (1 - t * 0.48);
-    const tipY = cy - h * (0.22 + t * 0.62);
-    const baseY = tipY + h * 0.46;
-    const grad = ctx.createLinearGradient(cx - w / 2, tipY, cx + w / 2, baseY);
-    grad.addColorStop(0, shade(baseGreen, 0.2));
-    grad.addColorStop(1, shade(baseGreen, -0.18));
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.moveTo(cx, tipY);
-    ctx.lineTo(cx + w / 2, baseY);
-    ctx.quadraticCurveTo(cx, baseY - h * 0.05, cx - w / 2, baseY);
-    ctx.closePath();
-    ctx.fill();
-  }
+  const variant = sprites.trees[Math.floor(hash2(seed, 1) * sprites.trees.length)];
+  const size = s * (0.9 + hash2(seed, 2) * 0.4);
+  drawShadow(ctx, cx, cy + s * 0.05, size * 0.34, size * 0.14);
+  drawSprite(ctx, variant, cx, cy + s * 0.06, size, size);
 }
 
 export function drawRock(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number, seed: number): void {
-  drawShadow(ctx, cx, cy + s * 0.06, s * 0.22, s * 0.09);
-  const points = 7;
-  const baseR = s * (0.15 + hash2(seed, 3) * 0.07);
-  const base = shade('#8a8578', hash2(seed, 4) * 0.16 - 0.08);
-  const grad = ctx.createLinearGradient(cx - baseR, cy - baseR, cx + baseR, cy + baseR);
-  grad.addColorStop(0, shade(base, 0.22));
-  grad.addColorStop(1, shade(base, -0.25));
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  for (let i = 0; i < points; i++) {
-    const a = (i / points) * Math.PI * 2;
-    const r = baseR * (0.78 + hash2(seed + i, 5) * 0.42);
-    const px = cx + Math.cos(a) * r;
-    const py = cy + Math.sin(a) * r * 0.7 - baseR * 0.35;
-    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-  }
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.22)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-}
-
-function keepTurret(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  yGround: number,
-  r: number,
-  h: number,
-  roofH: number,
-  wallColor: string,
-  roofColor: string,
-): void {
-  const wallGrad = ctx.createLinearGradient(x - r, yGround - h, x + r, yGround);
-  wallGrad.addColorStop(0, shade(wallColor, 0.14));
-  wallGrad.addColorStop(1, shade(wallColor, -0.16));
-  ctx.fillStyle = wallGrad;
-  ctx.fillRect(x - r, yGround - h, r * 2, h);
-
-  const roofGrad = ctx.createLinearGradient(x - r * 1.2, yGround - h - roofH, x + r * 1.2, yGround - h);
-  roofGrad.addColorStop(0, shade(roofColor, 0.25));
-  roofGrad.addColorStop(1, shade(roofColor, -0.2));
-  ctx.fillStyle = roofGrad;
-  ctx.beginPath();
-  ctx.moveTo(x, yGround - h - roofH);
-  ctx.lineTo(x + r * 1.2, yGround - h);
-  ctx.lineTo(x - r * 1.2, yGround - h);
-  ctx.closePath();
-  ctx.fill();
+  const variant = sprites.rocks[Math.floor(hash2(seed, 3) * sprites.rocks.length)];
+  const size = s * (0.55 + hash2(seed, 4) * 0.25);
+  drawShadow(ctx, cx, cy + s * 0.03, size * 0.42, size * 0.16);
+  drawSprite(ctx, variant, cx, cy + s * 0.04, size, size);
 }
 
 export function drawCastle(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number): void {
-  const stone = '#a89c86';
-  const roof = '#3a6ea8';
-  drawShadow(ctx, cx, cy + s * 0.1, s * 0.85, s * 0.32);
-
-  const corners: [number, number][] = [
-    [-0.52, -0.05],
-    [0.52, -0.05],
-    [-0.4, 0.28],
-    [0.4, 0.28],
-  ];
-  for (const [dx, dz] of corners) {
-    keepTurret(ctx, cx + dx * s, cy + dz * s, s * 0.13, s * 0.4, s * 0.24, stone, roof);
-  }
-
-  const wallGrad = ctx.createLinearGradient(cx - s * 0.55, cy - s * 0.05, cx + s * 0.55, cy + s * 0.15);
-  wallGrad.addColorStop(0, shade(stone, 0.05));
-  wallGrad.addColorStop(1, shade(stone, -0.1));
-  ctx.fillStyle = wallGrad;
-  ctx.fillRect(cx - s * 0.55, cy - s * 0.05, s * 1.1, s * 0.24);
-
-  keepTurret(ctx, cx, cy + s * 0.02, s * 0.3, s * 0.58, s * 0.36, stone, roof);
-
-  const flagBaseY = cy + s * 0.02 - s * 0.58 - s * 0.36;
-  ctx.strokeStyle = '#3e2c1a';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(cx, flagBaseY);
-  ctx.lineTo(cx, flagBaseY - s * 0.2);
-  ctx.stroke();
-  ctx.fillStyle = '#b6321f';
-  ctx.beginPath();
-  ctx.moveTo(cx, flagBaseY - s * 0.2);
-  ctx.lineTo(cx + s * 0.14, flagBaseY - s * 0.14);
-  ctx.lineTo(cx, flagBaseY - s * 0.08);
-  ctx.closePath();
-  ctx.fill();
+  drawShadow(ctx, cx, cy + s * 0.14, s * 0.9, s * 0.34);
+  drawSprite(ctx, sprites.castle, cx, cy + s * 0.16, s * 1.75, s * 1.75);
 }
 
 // ---------------------------------------------------------------- towers

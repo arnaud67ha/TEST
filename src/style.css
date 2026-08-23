@@ -127,6 +127,15 @@ button {
   text-decoration: underline;
 }
 
+.credit {
+  position: absolute;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  color: var(--text-dim);
+  opacity: 0.6;
+  font-size: 0.72rem;
+  margin: 0;
+}
+
 .level-list {
   display: flex;
   flex-direction: column;
