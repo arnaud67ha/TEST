@@ -24,6 +24,8 @@ export class Canvas2DRenderer {
   private originY = 0;
   private dpr = Math.min(window.devicePixelRatio, 2);
 
+  private topInset = 58;
+  private bottomInset = 170;
   private groundCanvas: HTMLCanvasElement | null = null;
   private decorations: Decoration[] = [];
   private goalPos: Vec2 | null = null;
@@ -59,14 +61,32 @@ export class Canvas2DRenderer {
     // Fit the board into the space between the HUD bars (not the full
     // screen) so it's never hidden behind them, and use every pixel of
     // whichever axis is the tighter fit instead of leaving it padded.
+    // topInset/bottomInset are kept in sync with the real, measured height
+    // of the HUD bars (see setInsetsFromHudRects) instead of guessed
+    // constants, so this adapts to any screen size, font scale, or HUD
+    // content (build hint text, tower popup) instead of assuming one.
     const marginX = 6;
-    const topInset = 58;
-    const bottomInset = 170;
     const availW = Math.max(1, w - marginX * 2);
-    const availH = Math.max(1, h - topInset - bottomInset);
+    const availH = Math.max(1, h - this.topInset - this.bottomInset);
     this.tileSize = Math.min(availW / this.gridWidth, availH / this.gridHeight);
     this.originX = w / 2 - (this.gridWidth * this.tileSize) / 2;
-    this.originY = topInset + availH / 2 - (this.gridHeight * this.tileSize) / 2;
+    this.originY = this.topInset + availH / 2 - (this.gridHeight * this.tileSize) / 2;
+  }
+
+  /** Recomputes the top/bottom insets from the HUD bars' actual on-screen
+   * height instead of a hardcoded guess, so the board never overlaps them
+   * and never leaves unnecessary blank space — measured live because the
+   * bottom bar's height changes with content (build hint, tower popup). */
+  setInsetsFromHudRects(hudTopRect: DOMRect, hudBottomRect: DOMRect): void {
+    const containerRect = this.container.getBoundingClientRect();
+    const top = Math.max(0, hudTopRect.bottom - containerRect.top + 8);
+    const bottom = Math.max(0, containerRect.bottom - hudBottomRect.top + 8);
+    if (top === this.topInset && bottom === this.bottomInset) return;
+    this.topInset = top;
+    this.bottomInset = bottom;
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
+    if (w > 0 && h > 0) this.computeTransform(w, h);
   }
 
   private cellCenter(gx: number, gy: number): Vec2 {

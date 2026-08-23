@@ -47,6 +47,8 @@ export class UIManager {
   private autoBtn!: HTMLButtonElement;
   private waveBtn!: HTMLButtonElement;
   private buildHintEl!: HTMLElement;
+  private hudTopEl: HTMLElement | null = null;
+  private hudBottomEl: HTMLElement | null = null;
   private towerButtons = new Map<TowerTypeId, HTMLButtonElement>();
   private popupHost = el('div');
   private popupRefs: { towerId: string; level: number; upgradeBtn: HTMLButtonElement; sellBtn: HTMLButtonElement } | null = null;
@@ -182,10 +184,21 @@ export class UIManager {
     bottom.append(this.buildHintEl, this.popupHost, shop, this.waveBtn);
 
     this.hudLayer.append(top, bottom);
+    this.hudTopEl = top;
+    this.hudBottomEl = bottom;
   }
 
   hideHUD(): void {
     this.hudLayer.innerHTML = '';
+    this.hudTopEl = null;
+    this.hudBottomEl = null;
+  }
+
+  /** Actual on-screen size of the top/bottom HUD bars, so the renderer can
+   * fit the board into whatever space is really left instead of guessing. */
+  getHudRects(): { top: DOMRect; bottom: DOMRect } | null {
+    if (!this.hudTopEl || !this.hudBottomEl) return null;
+    return { top: this.hudTopEl.getBoundingClientRect(), bottom: this.hudBottomEl.getBoundingClientRect() };
   }
 
   updateHUD(

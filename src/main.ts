@@ -123,6 +123,8 @@ function loop(now: number): void {
     }
 
     ui.updateHUD(gameState, selectedTower, buildSelection);
+    const hudRects = ui.getHudRects();
+    if (hudRects) sceneManager.setInsetsFromHudRects(hudRects.top, hudRects.bottom);
 
     if (wasPlaying && gameState.outcome === 'victory') {
       saveManager.recordResult(gameState.levelIndex, gameState.starsEarned);
