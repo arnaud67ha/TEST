@@ -3,10 +3,10 @@ import type { TowerDef, TowerTypeId } from './types.ts';
 export const TOWER_DEFS: Record<TowerTypeId, TowerDef> = {
   archer: {
     id: 'archer',
-    name: 'Archer',
-    description: 'Cadence rapide, cible un seul ennemi. Bon partout.',
-    color: '#2f8fe6',
-    accentColor: '#c9e3ff',
+    name: "Tour d'archers",
+    description: 'Tir rapide et précis sur une seule cible. Polyvalente.',
+    color: '#8a8f99',
+    accentColor: '#b6321f',
     sellRatio: 0.6,
     levels: [
       { damage: 8, range: 3.2, fireRate: 1.6, upgradeCost: 50 },
@@ -14,12 +14,12 @@ export const TOWER_DEFS: Record<TowerTypeId, TowerDef> = {
       { damage: 22, range: 3.6, fireRate: 2.3, upgradeCost: 90 },
     ],
   },
-  cannon: {
-    id: 'cannon',
-    name: 'Canon',
-    description: 'Tir lent mais explosif, touche les ennemis groupés.',
-    color: '#ff7a1a',
-    accentColor: '#ffd7ad',
+  trebuchet: {
+    id: 'trebuchet',
+    name: 'Trébuchet',
+    description: 'Projectile lent mais dévastateur, ravage les groupes.',
+    color: '#8a5a2e',
+    accentColor: '#5c5c66',
     sellRatio: 0.6,
     levels: [
       { damage: 22, range: 2.6, fireRate: 0.6, splashRadius: 1.1, upgradeCost: 90 },
@@ -29,10 +29,10 @@ export const TOWER_DEFS: Record<TowerTypeId, TowerDef> = {
   },
   frost: {
     id: 'frost',
-    name: 'Givre',
+    name: 'Mage de givre',
     description: 'Faibles dégâts mais ralentit durablement les ennemis.',
-    color: '#3fe0f0',
-    accentColor: '#e3fbff',
+    color: '#2f6f8f',
+    accentColor: '#bfeaff',
     sellRatio: 0.6,
     levels: [
       { damage: 4, range: 2.8, fireRate: 1.0, slowFactor: 0.35, slowDuration: 1.5, upgradeCost: 70 },
@@ -40,12 +40,12 @@ export const TOWER_DEFS: Record<TowerTypeId, TowerDef> = {
       { damage: 9, range: 3.2, fireRate: 1.2, slowFactor: 0.55, slowDuration: 2.2, upgradeCost: 100 },
     ],
   },
-  tesla: {
-    id: 'tesla',
-    name: 'Tesla',
-    description: "Foudre chaînée qui rebondit sur plusieurs cibles proches.",
-    color: '#a855f7',
-    accentColor: '#ecdcff',
+  mage: {
+    id: 'mage',
+    name: 'Sorcier foudroyant',
+    description: 'Foudre qui rebondit sur plusieurs cibles proches.',
+    color: '#4a2f7a',
+    accentColor: '#b98cff',
     sellRatio: 0.6,
     levels: [
       { damage: 16, range: 2.4, fireRate: 0.8, chainCount: 2, chainRange: 1.8, upgradeCost: 130 },
@@ -55,13 +55,13 @@ export const TOWER_DEFS: Record<TowerTypeId, TowerDef> = {
   },
 };
 
-export const TOWER_ORDER: TowerTypeId[] = ['archer', 'cannon', 'frost', 'tesla'];
+export const TOWER_ORDER: TowerTypeId[] = ['archer', 'trebuchet', 'frost', 'mage'];
 
 export const PROJECTILE_SPEED: Record<TowerTypeId, number> = {
   archer: 10,
-  cannon: 6,
+  trebuchet: 6,
   frost: 8,
-  tesla: 16,
+  mage: 16,
 };
 
 export function towerPlacementCost(id: TowerTypeId): number {

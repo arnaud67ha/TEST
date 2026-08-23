@@ -25,9 +25,9 @@ function statLine(label: string, value: string): HTMLElement {
 }
 
 function towerSpecialLine(type: TowerTypeId, stats: (typeof TOWER_DEFS)[TowerTypeId]['levels'][number]): string | null {
-  if (type === 'cannon' && stats.splashRadius) return `Zone ${stats.splashRadius.toFixed(1)}`;
+  if (type === 'trebuchet' && stats.splashRadius) return `Zone ${stats.splashRadius.toFixed(1)}`;
   if (type === 'frost' && stats.slowFactor) return `Ralentit -${Math.round(stats.slowFactor * 100)}%`;
-  if (type === 'tesla' && stats.chainCount) return `Chaîne x${stats.chainCount + 1}`;
+  if (type === 'mage' && stats.chainCount) return `Chaîne x${stats.chainCount + 1}`;
   return null;
 }
 

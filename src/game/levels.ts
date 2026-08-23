@@ -11,14 +11,14 @@ function generateWaves(waveCount: number): WaveDef[] {
     const entries: { type: EnemyTypeId; count: number; interval: number; delay: number }[] = [];
 
     if (isFinal) {
-      entries.push({ type: 'grunt', count: 6 + i, interval: 0.8, delay: 0 });
-      entries.push({ type: 'tank', count: 2 + Math.floor(i / 4), interval: 1.3, delay: 3 });
-      entries.push({ type: 'boss', count: 1, interval: 0, delay: 6 });
+      entries.push({ type: 'orc', count: 6 + i, interval: 0.8, delay: 0 });
+      entries.push({ type: 'troll', count: 2 + Math.floor(i / 4), interval: 1.3, delay: 3 });
+      entries.push({ type: 'dragon', count: 1, interval: 0, delay: 6 });
     } else {
-      const gruntCount = 4 + Math.floor(i * 1.3);
-      entries.push({ type: 'grunt', count: gruntCount, interval: 0.9, delay: 0 });
-      if (i >= 1) entries.push({ type: 'runner', count: 2 + Math.floor(i * 0.8), interval: 0.45, delay: 1.0 });
-      if (i >= 3) entries.push({ type: 'tank', count: 1 + Math.floor((i - 2) * 0.5), interval: 1.4, delay: 2.2 });
+      const orcCount = 4 + Math.floor(i * 1.3);
+      entries.push({ type: 'orc', count: orcCount, interval: 0.9, delay: 0 });
+      if (i >= 1) entries.push({ type: 'goblin', count: 2 + Math.floor(i * 0.8), interval: 0.45, delay: 1.0 });
+      if (i >= 3) entries.push({ type: 'troll', count: 1 + Math.floor((i - 2) * 0.5), interval: 1.4, delay: 2.2 });
     }
     waves.push({ entries });
   }

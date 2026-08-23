@@ -3,8 +3,8 @@ export interface Vec2 {
   y: number;
 }
 
-export type TowerTypeId = 'archer' | 'cannon' | 'frost' | 'tesla';
-export type EnemyTypeId = 'grunt' | 'runner' | 'tank' | 'boss';
+export type TowerTypeId = 'archer' | 'trebuchet' | 'frost' | 'mage';
+export type EnemyTypeId = 'orc' | 'goblin' | 'troll' | 'dragon';
 
 export interface TowerLevelStats {
   damage: number;

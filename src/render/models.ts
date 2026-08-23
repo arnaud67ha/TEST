@@ -7,110 +7,122 @@ function geo<T extends THREE.BufferGeometry>(key: string, factory: () => T): T {
   return geometryCache.get(key) as T;
 }
 
-// A 4-step gradient map turns MeshToonMaterial's lighting into flat,
-// high-contrast color bands instead of a smooth PBR falloff — the crisp,
-// "cartoon" look mobile tower defense games use instead of realism.
-const toonGradient = (() => {
-  const steps = new Uint8Array([70, 130, 195, 255]);
-  const data = new Uint8Array(steps.length * 4);
-  for (let i = 0; i < steps.length; i++) {
-    data[i * 4] = data[i * 4 + 1] = data[i * 4 + 2] = steps[i];
-    data[i * 4 + 3] = 255;
-  }
-  const tex = new THREE.DataTexture(data, steps.length, 1, THREE.RGBAFormat);
-  tex.minFilter = THREE.NearestFilter;
-  tex.magFilter = THREE.NearestFilter;
-  tex.needsUpdate = true;
-  return tex;
-})();
-
 function shade(hex: string, amount: number): string {
   const c = new THREE.Color(hex);
   c.lerp(new THREE.Color(amount >= 0 ? '#ffffff' : '#000000'), Math.abs(amount));
   return `#${c.getHexString()}`;
 }
 
-function mat(color: string, opts: Partial<THREE.MeshToonMaterialParameters> = {}): THREE.MeshToonMaterial {
-  return new THREE.MeshToonMaterial({ color, gradientMap: toonGradient, ...opts });
+function mat(color: string, opts: Partial<THREE.MeshStandardMaterialParameters> = {}): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({ color, roughness: 0.8, metalness: 0.05, ...opts });
 }
+const stoneMat = () => mat('#867d6d', { roughness: 0.95 });
+const woodMat = (color = '#7a5228') => mat(color, { roughness: 0.85 });
+const ironMat = (color = '#4b4a52') => mat(color, { roughness: 0.4, metalness: 0.7 });
 
-/** Like mat(), but with a low self-emissive tint so the shape still reads
- * its own hue on shadow-facing surfaces instead of collapsing to near-black. */
-function vividMat(color: string, emissiveIntensity = 0.22): THREE.MeshToonMaterial {
-  return mat(color, { emissive: new THREE.Color(color), emissiveIntensity });
-}
-
-const outlineMaterial = new THREE.MeshBasicMaterial({ color: '#150c30', side: THREE.BackSide });
-
-/** Builds a mesh with a thin inverted-hull outline (a child, so it follows any later rotation/position changes). */
 function mesh(g: THREE.BufferGeometry, m: THREE.Material, x = 0, y = 0, z = 0): THREE.Mesh {
   const mm = new THREE.Mesh(g, m);
   mm.position.set(x, y, z);
   mm.castShadow = true;
   mm.receiveShadow = true;
-  const outline = new THREE.Mesh(g, outlineMaterial);
-  outline.scale.setScalar(1.12);
-  mm.add(outline);
   return mm;
 }
 
 function addLevelPips(group: THREE.Group, level: 1 | 2 | 3, color: string): void {
-  const pipGeo = geo('pip', () => new THREE.SphereGeometry(0.05, 8, 8));
-  const pipMat = mat(color, { emissive: new THREE.Color(color), emissiveIntensity: 0.6 });
+  const pipGeo = geo('pip', () => new THREE.SphereGeometry(0.045, 8, 8));
+  const pipMat = mat(color, { emissive: new THREE.Color(color), emissiveIntensity: 0.7, roughness: 0.3 });
   for (let i = 0; i < level; i++) {
-    group.add(mesh(pipGeo, pipMat, -0.18 + i * 0.18, 0.05, 0.42));
+    group.add(mesh(pipGeo, pipMat, -0.16 + i * 0.16, 0.32, 0.34));
   }
 }
 
 export function buildTowerModel(type: TowerTypeId, level: 1 | 2 | 3, color: string, accent: string): THREE.Group {
   const group = new THREE.Group();
   const scale = 0.92 + (level - 1) * 0.12;
-  const baseGeo = geo('towerBase', () => new THREE.CylinderGeometry(0.3, 0.36, 0.14, 12));
-  group.add(mesh(baseGeo, mat('#6a5da0'), 0, 0.07, 0));
-
-  const bodyMat = vividMat(color);
-  const accentMat = vividMat(accent, 0.4);
+  const baseGeo = geo('towerBase', () => new THREE.CylinderGeometry(0.32, 0.38, 0.16, 12));
+  group.add(mesh(baseGeo, stoneMat(), 0, 0.08, 0));
 
   switch (type) {
     case 'archer': {
-      const trunk = geo('archerTrunk', () => new THREE.CylinderGeometry(0.12, 0.16, 0.55, 10));
-      const roof = geo('archerRoof', () => new THREE.ConeGeometry(0.22, 0.32, 10));
-      group.add(mesh(trunk, bodyMat, 0, 0.16 + 0.275 * scale, 0));
-      group.add(mesh(roof, accentMat, 0, 0.16 + 0.55 * scale + 0.16 * scale, 0));
+      const bodyMat = mat(color, { roughness: 0.9 });
+      const turret = geo('archerTurret', () => new THREE.CylinderGeometry(0.24, 0.28, 0.5, 12));
+      group.add(mesh(turret, bodyMat, 0, 0.16 + 0.25 * scale, 0));
+
+      const merlonGeo = geo('archerMerlon', () => new THREE.BoxGeometry(0.09, 0.13, 0.09));
+      const merlonMat = mat(shade(color, -0.15), { roughness: 0.9 });
+      const ringY = 0.16 + 0.5 * scale + 0.065;
+      const ringR = 0.24;
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        group.add(mesh(merlonGeo, merlonMat, Math.cos(a) * ringR, ringY, Math.sin(a) * ringR));
+      }
+
+      const pole = geo('archerPole', () => new THREE.CylinderGeometry(0.018, 0.018, 0.34, 6));
+      group.add(mesh(pole, woodMat('#5a4022'), 0, ringY + 0.22, 0));
+      const flag = geo('archerFlag', () => new THREE.ConeGeometry(0.09, 0.18, 4));
+      const flagMesh = mesh(flag, mat(accent, { roughness: 0.6 }), 0.06, ringY + 0.32, 0);
+      flagMesh.rotation.z = -Math.PI / 2;
+      group.add(flagMesh);
       break;
     }
-    case 'cannon': {
-      const drum = geo('cannonDrum', () => new THREE.CylinderGeometry(0.26, 0.3, 0.3, 12));
-      const barrel = geo('cannonBarrel', () => new THREE.CylinderGeometry(0.09, 0.1, 0.55, 10));
-      const d = mesh(drum, bodyMat, 0, 0.16 + 0.15 * scale, 0);
-      group.add(d);
-      const barrelMesh = mesh(barrel, accentMat, 0, 0.16 + 0.2 * scale, 0.28 * scale);
-      barrelMesh.rotation.x = Math.PI / 2;
-      group.add(barrelMesh);
+    case 'trebuchet': {
+      // Two A-frame legs pivoting from a shared apex point (not just two
+      // separately-positioned sticks) so they visibly converge, plus a
+      // thicker throwing arm crossing through the same pivot — legibility
+      // at small on-screen scale matters more than fine detail here.
+      const apexY = 0.16 + 0.52 * scale;
+      const legLen = 0.55 * scale;
+      const legMat = woodMat(shade(color, -0.12));
+      for (const angle of [0.42, -0.42]) {
+        const leg = new THREE.Group();
+        leg.position.set(0, apexY, 0);
+        leg.rotation.z = angle;
+        const legGeo = new THREE.BoxGeometry(0.09, legLen, 0.09);
+        leg.add(mesh(legGeo, legMat, 0, -legLen / 2, 0));
+        group.add(leg);
+      }
+      const pinGeo = geo('trebPin', () => new THREE.SphereGeometry(0.05, 8, 8));
+      group.add(mesh(pinGeo, ironMat('#3a3a42'), 0, apexY, 0));
+
+      const armLen = 0.95 * scale;
+      const arm = new THREE.Group();
+      arm.position.set(0, apexY, 0);
+      arm.rotation.z = -0.55;
+      const armGeo = new THREE.BoxGeometry(0.07, armLen, 0.07);
+      arm.add(mesh(armGeo, woodMat(color), 0, 0, 0));
+      const counterweight = geo('trebCounterweight', () => new THREE.BoxGeometry(0.2, 0.2, 0.2));
+      arm.add(mesh(counterweight, ironMat(accent), 0, armLen / 2, 0));
+      const boulderGeo = geo('trebBoulder', () => new THREE.SphereGeometry(0.1, 8, 8));
+      arm.add(mesh(boulderGeo, stoneMat(), 0, -armLen / 2, 0));
+      group.add(arm);
       break;
     }
     case 'frost': {
-      const crystalMat = mat(color, { emissive: new THREE.Color(color), emissiveIntensity: 0.55 });
-      const crystal = geo('frostCrystal', () => new THREE.OctahedronGeometry(0.26, 0));
-      const c = mesh(crystal, crystalMat, 0, 0.16 + 0.34 * scale, 0);
+      const robe = geo('frostRobe', () => new THREE.ConeGeometry(0.2, 0.5, 10));
+      group.add(mesh(robe, mat(color, { roughness: 0.7 }), 0, 0.16 + 0.25 * scale, 0));
+      const hood = geo('frostHood', () => new THREE.SphereGeometry(0.11, 10, 10));
+      group.add(mesh(hood, mat(shade(color, -0.35), { roughness: 0.75 }), 0, 0.16 + 0.5 * scale + 0.03, 0));
+
+      const crystalMat = mat(accent, { emissive: new THREE.Color(accent), emissiveIntensity: 0.8, roughness: 0.15, metalness: 0.1 });
+      const crystal = geo('frostCrystal', () => new THREE.OctahedronGeometry(0.11, 0));
+      const c = mesh(crystal, crystalMat, 0, 0.16 + 0.5 * scale + 0.26, 0);
       c.rotation.y = Math.PI / 6;
       group.add(c);
-      const orbit = geo('frostOrbit', () => new THREE.TorusGeometry(0.22, 0.02, 6, 16));
-      const o = mesh(orbit, accentMat, 0, 0.16 + 0.34 * scale, 0);
-      o.rotation.x = Math.PI / 2.4;
-      group.add(o);
       break;
     }
-    case 'tesla': {
-      const rod = geo('teslaRod', () => new THREE.CylinderGeometry(0.06, 0.09, 0.62, 8));
-      group.add(mesh(rod, bodyMat, 0, 0.16 + 0.31 * scale, 0));
-      const ring = geo('teslaRing', () => new THREE.TorusGeometry(0.17, 0.03, 8, 16));
-      const r = mesh(ring, accentMat, 0, 0.16 + 0.5 * scale, 0);
-      r.rotation.x = Math.PI / 2;
-      group.add(r);
-      const orbMat = mat(accent, { emissive: new THREE.Color(accent), emissiveIntensity: 1 });
-      const orb = geo('teslaOrb', () => new THREE.SphereGeometry(0.1, 10, 10));
-      group.add(mesh(orb, orbMat, 0, 0.16 + 0.62 * scale, 0));
+    case 'mage': {
+      const robe = geo('mageRobe', () => new THREE.ConeGeometry(0.2, 0.5, 10));
+      group.add(mesh(robe, mat(color, { roughness: 0.7 }), 0, 0.16 + 0.25 * scale, 0));
+      const hood = geo('mageHood', () => new THREE.SphereGeometry(0.11, 10, 10));
+      group.add(mesh(hood, mat(shade(color, -0.35), { roughness: 0.75 }), 0, 0.16 + 0.5 * scale + 0.03, 0));
+
+      const staff = geo('mageStaff', () => new THREE.CylinderGeometry(0.02, 0.02, 0.6, 6));
+      const staffMesh = mesh(staff, woodMat('#3e2c1a'), 0.16, 0.16 + 0.4 * scale, 0);
+      staffMesh.rotation.z = -0.18;
+      group.add(staffMesh);
+      const orbMat = mat(accent, { emissive: new THREE.Color(accent), emissiveIntensity: 1.1, roughness: 0.2 });
+      const orb = geo('mageOrb', () => new THREE.SphereGeometry(0.075, 10, 10));
+      group.add(mesh(orb, orbMat, 0.21, 0.16 + 0.68 * scale, 0));
       break;
     }
   }
@@ -130,33 +142,74 @@ export function buildRangeIndicator(radius: number): THREE.Mesh {
 
 export function buildEnemyModel(type: EnemyTypeId, color: string, radius: number): THREE.Group {
   const group = new THREE.Group();
-  const bodyMat = vividMat(color, 0.18);
-  const darkMat = vividMat(shade(color, -0.32), 0.12);
+  const bodyMat = mat(color, { roughness: 0.75 });
+  const darkMat = mat(shade(color, -0.32), { roughness: 0.75 });
 
   switch (type) {
-    case 'grunt': {
-      group.add(mesh(geo('gruntBody', () => new THREE.BoxGeometry(radius * 1.5, radius * 1.6, radius * 1.5)), bodyMat, 0, radius * 0.8, 0));
-      group.add(mesh(geo('gruntHead', () => new THREE.SphereGeometry(radius * 0.6, 10, 10)), darkMat, 0, radius * 1.9, 0));
+    case 'orc': {
+      group.add(mesh(geo('orcBody', () => new THREE.BoxGeometry(radius * 1.5, radius * 1.6, radius * 1.5)), bodyMat, 0, radius * 0.8, 0));
+      group.add(mesh(geo('orcHead', () => new THREE.SphereGeometry(radius * 0.6, 10, 10)), darkMat, 0, radius * 1.9, 0));
+      const padGeo = geo('orcPad', () => new THREE.BoxGeometry(radius * 0.5, radius * 0.25, radius * 0.55));
+      const padMat = ironMat('#5c5a63');
+      group.add(mesh(padGeo, padMat, -radius * 0.85, radius * 1.35, 0));
+      group.add(mesh(padGeo, padMat, radius * 0.85, radius * 1.35, 0));
       break;
     }
-    case 'runner': {
-      const body = mesh(geo('runnerBody', () => new THREE.BoxGeometry(radius * 2.2, radius * 1.1, radius * 1.2)), bodyMat, 0, radius * 0.6, 0);
+    case 'goblin': {
+      const body = mesh(geo('goblinBody', () => new THREE.BoxGeometry(radius * 2.2, radius * 1.1, radius * 1.2)), bodyMat, 0, radius * 0.6, 0);
       group.add(body);
-      const head = mesh(geo('runnerHead', () => new THREE.ConeGeometry(radius * 0.5, radius * 0.9, 8)), darkMat, radius * 1.1, radius * 0.7, 0);
+      const head = mesh(geo('goblinHead', () => new THREE.ConeGeometry(radius * 0.5, radius * 0.9, 8)), darkMat, radius * 1.1, radius * 0.7, 0);
       head.rotateZ(-Math.PI / 2);
       group.add(head);
+      const earGeo = geo('goblinEar', () => new THREE.ConeGeometry(radius * 0.18, radius * 0.5, 6));
+      const earL = mesh(earGeo, darkMat, radius * 0.85, radius * 1.05, radius * 0.28);
+      earL.rotation.z = -0.7;
+      const earR = mesh(earGeo, darkMat, radius * 0.85, radius * 1.05, -radius * 0.28);
+      earR.rotation.z = -0.7;
+      group.add(earL, earR);
       break;
     }
-    case 'tank': {
-      group.add(mesh(geo('tankBody', () => new THREE.BoxGeometry(radius * 2, radius * 1.8, radius * 2)), bodyMat, 0, radius, 0));
-      group.add(mesh(geo('tankTop', () => new THREE.BoxGeometry(radius * 1.1, radius * 0.6, radius * 1.1)), darkMat, 0, radius * 2.1, 0));
+    case 'troll': {
+      group.add(mesh(geo('trollBody', () => new THREE.BoxGeometry(radius * 2, radius * 1.8, radius * 2)), bodyMat, 0, radius, 0));
+      group.add(mesh(geo('trollHead', () => new THREE.BoxGeometry(radius * 1.1, radius * 0.6, radius * 1.1)), darkMat, 0, radius * 2.1, 0));
+      const club = geo('trollClub', () => new THREE.CylinderGeometry(radius * 0.22, radius * 0.16, radius * 1.6, 8));
+      const clubMesh = mesh(club, woodMat('#5a4a2e'), radius * 1.5, radius * 1.1, 0);
+      clubMesh.rotation.z = 0.5;
+      group.add(clubMesh);
       break;
     }
-    case 'boss': {
-      const coreMat = mat(color, { emissive: new THREE.Color(color), emissiveIntensity: 0.5 });
-      const core = mesh(geo('bossCore', () => new THREE.IcosahedronGeometry(radius * 1.3, 0)), coreMat, 0, radius * 1.4, 0);
-      group.add(core);
-      group.add(mesh(geo('bossCrown', () => new THREE.ConeGeometry(radius * 0.9, radius * 0.9, 6)), darkMat, 0, radius * 2.6, 0));
+    case 'dragon': {
+      const bodyGeo = geo('dragonBody', () => new THREE.IcosahedronGeometry(radius * 1.1, 1));
+      const body = mesh(bodyGeo, mat(color, { roughness: 0.55, metalness: 0.15 }), 0, radius * 1.3, 0);
+      body.scale.set(1, 0.85, 1.6);
+      group.add(body);
+
+      const neckMat = mat(shade(color, -0.1), { roughness: 0.55, metalness: 0.15 });
+      const head = mesh(geo('dragonHead', () => new THREE.ConeGeometry(radius * 0.55, radius * 0.9, 8)), neckMat, 0, radius * 1.8, radius * 1.5);
+      head.rotation.x = Math.PI / 2.1;
+      group.add(head);
+
+      const hornGeo = geo('dragonHorn', () => new THREE.ConeGeometry(radius * 0.14, radius * 0.4, 6));
+      const hornMat = mat('#e8dfc0', { roughness: 0.5 });
+      const hornL = mesh(hornGeo, hornMat, -radius * 0.18, radius * 2.15, radius * 1.75);
+      hornL.rotation.x = -0.4;
+      const hornR = mesh(hornGeo, hornMat, radius * 0.18, radius * 2.15, radius * 1.75);
+      hornR.rotation.x = -0.4;
+      group.add(hornL, hornR);
+
+      const wingGeo = geo('dragonWing', () => new THREE.BoxGeometry(radius * 1.6, radius * 0.06, radius * 0.9));
+      const wingMat = mat(shade(color, -0.25), { roughness: 0.6 });
+      const wingL = mesh(wingGeo, wingMat, -radius * 1.1, radius * 1.6, -radius * 0.1);
+      wingL.rotation.z = 0.45;
+      wingL.rotation.y = 0.25;
+      const wingR = mesh(wingGeo, wingMat, radius * 1.1, radius * 1.6, -radius * 0.1);
+      wingR.rotation.z = -0.45;
+      wingR.rotation.y = -0.25;
+      group.add(wingL, wingR);
+
+      const tail = mesh(geo('dragonTail', () => new THREE.ConeGeometry(radius * 0.35, radius * 1.3, 8)), neckMat, 0, radius * 1.1, -radius * 1.6);
+      tail.rotation.x = -Math.PI / 2.3;
+      group.add(tail);
       break;
     }
   }
@@ -167,7 +220,7 @@ export function buildHealthBar(): { group: THREE.Group; fill: THREE.Mesh } {
   const group = new THREE.Group();
   const bgGeo = geo('hpBg', () => new THREE.PlaneGeometry(0.62, 0.1));
   const fillGeo = geo('hpFill', () => new THREE.PlaneGeometry(1, 1));
-  const bg = new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ color: '#150c30' }));
+  const bg = new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ color: '#241b12' }));
   const fill = new THREE.Mesh(fillGeo, new THREE.MeshBasicMaterial({ color: '#4ade80' }));
   fill.scale.set(0.56, 0.06, 1);
   fill.position.z = 0.001;
@@ -175,21 +228,34 @@ export function buildHealthBar(): { group: THREE.Group; fill: THREE.Mesh } {
   return { group, fill };
 }
 
-export function buildProjectileModel(color: string): THREE.Mesh {
-  const g = geo('projectile', () => new THREE.SphereGeometry(0.08, 8, 8));
-  const m = mat(color, { emissive: new THREE.Color(color), emissiveIntensity: 1 });
-  return mesh(g, m);
+export function buildProjectileModel(type: TowerTypeId, color: string): THREE.Mesh {
+  switch (type) {
+    case 'trebuchet': {
+      const g = geo('boulder', () => new THREE.SphereGeometry(0.1, 8, 8));
+      return mesh(g, stoneMat());
+    }
+    case 'archer': {
+      const g = geo('arrow', () => new THREE.CylinderGeometry(0.02, 0.02, 0.32, 5));
+      const a = mesh(g, woodMat('#6b4a28'));
+      a.rotation.x = Math.PI / 2;
+      return a;
+    }
+    default: {
+      const g = geo('projectileOrb', () => new THREE.SphereGeometry(0.08, 8, 8));
+      const m = mat(color, { emissive: new THREE.Color(color), emissiveIntensity: 1, roughness: 0.25 });
+      return mesh(g, m);
+    }
+  }
 }
 
 export function buildTileMesh(color: string): THREE.Mesh {
   const g = geo('tile', () => new THREE.BoxGeometry(0.9, 0.24, 0.9));
-  // Two-tone bevel (bright top, darker sides) reads as a chunky, toy-like
-  // tile instead of a flat-shaded slab. BoxGeometry face order is
+  // Two-tone bevel (bright top, darker sides) reads as a chunky tile
+  // instead of a flat-shaded slab. BoxGeometry face order is
   // [+x, -x, +y(top), -y(bottom), +z, -z].
-  const top = mat(shade(color, 0.16));
-  const side = mat(shade(color, -0.34));
+  const top = mat(shade(color, 0.14), { roughness: 0.95 });
+  const side = mat(shade(color, -0.3), { roughness: 0.95 });
   const t = new THREE.Mesh(g, [side, side, top, side, side, side]);
   t.receiveShadow = true;
-  t.castShadow = false;
   return t;
 }
