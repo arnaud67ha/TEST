@@ -4,13 +4,17 @@ import type { Vec2, TowerTypeId, EnemyTypeId } from '../game/types.ts';
 import { TOWER_DEFS } from '../game/towers.ts';
 import { ENEMY_DEFS } from '../game/enemies.ts';
 import {
+  buildCastleModel,
   buildEnemyModel,
   buildHealthBar,
   buildProjectileModel,
   buildRangeIndicator,
-  buildTileMesh,
+  buildRockModel,
   buildTowerModel,
+  buildTreeModel,
+  hash2,
 } from './models.ts';
+import { buildGroundTexture } from './textures.ts';
 
 interface TowerMeshEntry {
   group: THREE.Group;
@@ -37,6 +41,7 @@ export class SceneManager {
   private towerMeshes = new Map<string, TowerMeshEntry>();
   private enemyMeshes = new Map<string, EnemyMeshEntry>();
   private projectileMeshes = new Map<string, THREE.Mesh>();
+  private decorMeshes = new Map<string, THREE.Object3D>();
   private rangeIndicator: THREE.Mesh | null = null;
   private hpBillboardQuat = new THREE.Quaternion();
 
@@ -51,12 +56,14 @@ export class SceneManager {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(this.renderer.domElement);
 
-    this.scene.background = new THREE.Color('#120c28');
-    this.scene.fog = new THREE.Fog('#120c28', 18, 40);
+    this.scene.background = new THREE.Color('#6fa53f');
+    this.scene.fog = new THREE.Fog('#6fa53f', 20, 42);
 
     this.camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 100);
-    const dir = new THREE.Vector3(1, 1.15, 1).normalize();
-    this.camera.position.copy(dir.multiplyScalar(24));
+    // A steeper, more top-down angle than a classic 45° isometric — reads
+    // closer to a painted "battle map" than a diorama.
+    const dir = new THREE.Vector3(0.85, 2.0, 1.05).normalize();
+    this.camera.position.copy(dir.multiplyScalar(26));
     this.camera.lookAt(0, 0, 0);
     this.hpBillboardQuat.copy(this.camera.quaternion);
 
@@ -64,8 +71,8 @@ export class SceneManager {
     // light with standard (PBR) materials — unlike toon banding, this
     // falls off continuously so it tolerates a couple of lights without
     // washing out.
-    this.scene.add(new THREE.HemisphereLight('#cfd6e8', '#3a2f22', 0.55));
-    const sun = new THREE.DirectionalLight('#fff0d0', 1.05);
+    this.scene.add(new THREE.HemisphereLight('#eaf2ff', '#4a7a2e', 0.75));
+    const sun = new THREE.DirectionalLight('#fff4d6', 1.15);
     sun.position.set(12, 22, 10);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
@@ -74,7 +81,7 @@ export class SceneManager {
     sun.shadow.camera.top = 16;
     sun.shadow.camera.bottom = -16;
     this.scene.add(sun);
-    const fill = new THREE.DirectionalLight('#8fa0c9', 0.22);
+    const fill = new THREE.DirectionalLight('#9fc2e0', 0.25);
     fill.position.set(-10, 10, -8);
     this.scene.add(fill);
 
@@ -108,6 +115,7 @@ export class SceneManager {
     this.towerMeshes.clear();
     this.enemyMeshes.clear();
     this.projectileMeshes.clear();
+    this.decorMeshes.clear();
     this.rangeIndicator = null;
 
     this.gridWidth = state.level.gridWidth;
@@ -115,16 +123,39 @@ export class SceneManager {
     this.frustumSize = Math.max(this.gridWidth, this.gridHeight) * 1.15 + 2;
     this.handleResize();
 
+    // One baked texture for the whole level — a continuous painted dirt
+    // road following the real path — instead of a grid of separate tiles.
+    const groundTex = buildGroundTexture(state);
+    groundTex.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+    const groundGeo = new THREE.PlaneGeometry(this.gridWidth, this.gridHeight);
+    const groundMat = new THREE.MeshStandardMaterial({ map: groundTex, roughness: 0.95 });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    this.levelGroup.add(ground);
+
     for (let y = 0; y < this.gridHeight; y++) {
       for (let x = 0; x < this.gridWidth; x++) {
-        const onPath = state.isOnPath(x, y);
-        const color = onPath ? '#96784c' : (x + y) % 2 === 0 ? '#4f7a3a' : '#588a40';
-        const tile = buildTileMesh(color);
+        if (state.isOnPath(x, y)) continue;
+        const roll = hash2(x * 12.9898, y * 78.233);
+        if (roll > 0.32) continue;
+        const seed = x * 1000 + y;
+        const model = roll < 0.09 ? buildRockModel(seed) : buildTreeModel(seed);
         const p = this.gridToWorld(x, y);
-        tile.position.set(p.x, -0.12, p.z);
-        this.levelGroup.add(tile);
+        const jx = (hash2(x, y * 2 + 1) - 0.5) * 0.35;
+        const jz = (hash2(x * 2 + 1, y) - 0.5) * 0.35;
+        model.position.set(p.x + jx, 0, p.z + jz);
+        this.levelGroup.add(model);
+        this.decorMeshes.set(`${x},${y}`, model);
       }
     }
+
+    const goal = state.level.path[state.level.path.length - 1];
+    const castle = buildCastleModel();
+    const goalPos = this.gridToWorld(goal.x, goal.y);
+    castle.position.set(goalPos.x, 0, goalPos.z);
+    castle.scale.setScalar(1.05);
+    this.levelGroup.add(castle);
   }
 
   screenToGridCell(clientX: number, clientY: number): Vec2 | null {
@@ -163,6 +194,13 @@ export class SceneManager {
     }
     if (existing) {
       this.entitiesGroup.remove(existing.group);
+    } else {
+      const decorKey = `${gridPos.x},${gridPos.y}`;
+      const decor = this.decorMeshes.get(decorKey);
+      if (decor) {
+        this.levelGroup.remove(decor);
+        this.decorMeshes.delete(decorKey);
+      }
     }
     const def = TOWER_DEFS[type];
     const group = buildTowerModel(type, level, def.color, def.accentColor);

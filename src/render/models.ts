@@ -248,14 +248,87 @@ export function buildProjectileModel(type: TowerTypeId, color: string): THREE.Me
   }
 }
 
-export function buildTileMesh(color: string): THREE.Mesh {
-  const g = geo('tile', () => new THREE.BoxGeometry(0.9, 0.24, 0.9));
-  // Two-tone bevel (bright top, darker sides) reads as a chunky tile
-  // instead of a flat-shaded slab. BoxGeometry face order is
-  // [+x, -x, +y(top), -y(bottom), +z, -z].
-  const top = mat(shade(color, 0.14), { roughness: 0.95 });
-  const side = mat(shade(color, -0.3), { roughness: 0.95 });
-  const t = new THREE.Mesh(g, [side, side, top, side, side, side]);
-  t.receiveShadow = true;
-  return t;
+/** Deterministic 0..1 value from integer coords, used to scatter/vary scenery without storing any state. */
+export function hash2(x: number, y: number): number {
+  const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+  return s - Math.floor(s);
+}
+
+export function buildTreeModel(seed: number): THREE.Group {
+  const group = new THREE.Group();
+  const h = 0.55 + hash2(seed, 1) * 0.25;
+  const trunk = geo('treeTrunk', () => new THREE.CylinderGeometry(0.04, 0.06, 0.22, 6));
+  group.add(mesh(trunk, woodMat('#5a3d22'), 0, 0.11, 0));
+  const foliageMat = mat(shade('#2f6b34', hash2(seed, 2) * 0.16 - 0.08), { roughness: 0.85 });
+  const tiers = 3;
+  for (let i = 0; i < tiers; i++) {
+    const t = i / (tiers - 1);
+    const r = 0.28 * (1 - t * 0.55);
+    const cone = geo(`treeCone${i}`, () => new THREE.ConeGeometry(1, 1, 8));
+    const c = mesh(cone, foliageMat, 0, 0.24 + t * h * 0.7 + h * 0.22, 0);
+    c.scale.set(r, h * 0.42, r);
+    group.add(c);
+  }
+  group.rotation.y = hash2(seed, 3) * Math.PI * 2;
+  return group;
+}
+
+export function buildRockModel(seed: number): THREE.Group {
+  const group = new THREE.Group();
+  const g = geo('rock', () => new THREE.IcosahedronGeometry(0.16, 0));
+  const r = mesh(g, mat(shade('#8a8578', hash2(seed, 4) * 0.2 - 0.1), { roughness: 0.95 }), 0, 0.08, 0);
+  r.scale.set(1 + hash2(seed, 5) * 0.4, 0.65 + hash2(seed, 6) * 0.25, 1 + hash2(seed, 7) * 0.4);
+  r.rotation.y = hash2(seed, 8) * Math.PI * 2;
+  group.add(r);
+  return group;
+}
+
+function turret(radius: number, height: number, roofHeight: number, wallColor: string, roofColor: string): THREE.Group {
+  const group = new THREE.Group();
+  const wall = geo(`turretWall${radius}-${height}`, () => new THREE.CylinderGeometry(radius, radius * 1.1, height, 10));
+  group.add(mesh(wall, mat(wallColor, { roughness: 0.9 }), 0, height / 2, 0));
+  const roof = geo(`turretRoof${radius}-${roofHeight}`, () => new THREE.ConeGeometry(radius * 1.15, roofHeight, 10));
+  group.add(mesh(roof, mat(roofColor, { roughness: 0.5, metalness: 0.1 }), 0, height + roofHeight / 2, 0));
+  return group;
+}
+
+export function buildCastleModel(): THREE.Group {
+  const group = new THREE.Group();
+  const stone = '#a89c86';
+  const roofBlue = '#3a6ea8';
+
+  const keep = turret(0.42, 0.85, 0.5, stone, roofBlue);
+  keep.position.set(0, 0, 0);
+  group.add(keep);
+
+  const corners: [number, number][] = [
+    [0.55, 0.55],
+    [-0.55, 0.55],
+    [0.55, -0.55],
+    [-0.55, -0.55],
+  ];
+  for (const [x, z] of corners) {
+    const t = turret(0.16, 0.55, 0.3, stone, roofBlue);
+    t.position.set(x, 0, z);
+    group.add(t);
+  }
+
+  const wallGeo = geo('castleWall', () => new THREE.BoxGeometry(1.1, 0.32, 0.08));
+  const wallMat = mat(stone, { roughness: 0.9 });
+  const front = mesh(wallGeo, wallMat, 0, 0.16, 0.55);
+  group.add(front);
+  const back = mesh(wallGeo, wallMat, 0, 0.16, -0.55);
+  group.add(back);
+  const sideGeo = geo('castleWallSide', () => new THREE.BoxGeometry(0.08, 0.32, 1.1));
+  group.add(mesh(sideGeo, wallMat, 0.55, 0.16, 0));
+  group.add(mesh(sideGeo, wallMat, -0.55, 0.16, 0));
+
+  const flagPole = geo('castleFlagPole', () => new THREE.CylinderGeometry(0.015, 0.015, 0.3, 6));
+  group.add(mesh(flagPole, woodMat('#3e2c1a'), 0, 1.5, 0));
+  const flag = geo('castleFlag', () => new THREE.ConeGeometry(0.09, 0.18, 4));
+  const flagMesh = mesh(flag, mat('#b6321f', { roughness: 0.6 }), 0.07, 1.58, 0);
+  flagMesh.rotation.z = -Math.PI / 2;
+  group.add(flagMesh);
+
+  return group;
 }
