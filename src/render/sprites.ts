@@ -29,7 +29,7 @@ function alpha(hex: string, a: number): string {
  * half, giving hand-drawn shapes the same "inked outline" read as the
  * pixel-art sprites they sit next to. */
 function fillOutlined(ctx: CanvasRenderingContext2D, fillStyle: string | CanvasGradient, lineWidth: number): void {
-  ctx.strokeStyle = 'rgba(20,12,6,0.65)';
+  ctx.strokeStyle = 'rgba(10,14,18,0.65)';
   ctx.lineWidth = lineWidth;
   ctx.lineJoin = 'round';
   ctx.stroke();
@@ -48,17 +48,17 @@ export function hash2(x: number, y: number): number {
 const GROUND_TILE_PX = 96;
 
 /** Bakes a whole level's terrain to an offscreen canvas: Kenney's real
- * painted grass/dirt textures tiled as patterns, with one continuous
- * dirt-road stroke following the real path (rounded joins) instead of a
- * grid of separate tiles. */
+ * "Tower Defense (top-down)" ground/tarmac tiles as patterns, with one
+ * continuous road stroke following the real path (rounded joins) instead
+ * of a grid of separate tiles. */
 export function bakeGround(gridWidth: number, gridHeight: number, path: Vec2[]): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = gridWidth * GROUND_TILE_PX;
   canvas.height = gridHeight * GROUND_TILE_PX;
   const ctx = canvas.getContext('2d')!;
 
-  const grassPattern = ctx.createPattern(sprites.grass, 'repeat');
-  ctx.fillStyle = grassPattern ?? '#5c9c44';
+  const groundPattern = ctx.createPattern(sprites.groundGrass, 'repeat');
+  ctx.fillStyle = groundPattern ?? '#3a4a3f';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const toPx = (p: Vec2) => ({ x: (p.x + 0.5) * GROUND_TILE_PX, y: (p.y + 0.5) * GROUND_TILE_PX });
@@ -69,12 +69,12 @@ export function bakeGround(gridWidth: number, gridHeight: number, path: Vec2[]):
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.lineWidth = GROUND_TILE_PX * 0.82;
-  ctx.strokeStyle = 'rgba(40,25,10,0.4)';
+  ctx.strokeStyle = 'rgba(8,12,16,0.4)';
   ctx.stroke(path2d);
 
-  const dirtPattern = ctx.createPattern(sprites.dirt, 'repeat');
+  const pathPattern = ctx.createPattern(sprites.groundPath, 'repeat');
   ctx.lineWidth = GROUND_TILE_PX * 0.66;
-  ctx.strokeStyle = dirtPattern ?? '#ad8049';
+  ctx.strokeStyle = pathPattern ?? '#5c6b73';
   ctx.stroke(path2d);
 
   return canvas;
@@ -83,7 +83,7 @@ export function bakeGround(gridWidth: number, gridHeight: number, path: Vec2[]):
 // ---------------------------------------------------------------- helpers
 
 function drawShadow(ctx: CanvasRenderingContext2D, cx: number, cy: number, rx: number, ry: number): void {
-  ctx.fillStyle = 'rgba(8,18,4,0.28)';
+  ctx.fillStyle = 'rgba(4,10,14,0.32)';
   ctx.beginPath();
   ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -100,7 +100,7 @@ function drawSprite(ctx: CanvasRenderingContext2D, image: HTMLImageElement, cx: 
 }
 
 export function drawTree(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number, seed: number): void {
-  const variant = sprites.trees[Math.floor(hash2(seed, 1) * sprites.trees.length)];
+  const variant = sprites.bushes[Math.floor(hash2(seed, 1) * sprites.bushes.length)];
   const size = s * (0.9 + hash2(seed, 2) * 0.4);
   drawShadow(ctx, cx, cy + s * 0.05, size * 0.34, size * 0.14);
   drawSprite(ctx, variant, cx, cy + s * 0.06, size, size);
@@ -113,13 +113,77 @@ export function drawRock(ctx: CanvasRenderingContext2D, cx: number, cy: number, 
   drawSprite(ctx, variant, cx, cy + s * 0.04, size, size);
 }
 
+/** No dedicated HQ sprite exists in the sourced sci-fi pack (turrets and
+ * ground tiles only), so the command base stays hand-drawn — reskinned to
+ * grey/blue gunmetal with warning stripes and a beacon instead of stone. */
 export function drawCastle(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number): void {
-  drawShadow(ctx, cx, cy + s * 0.14, s * 0.9, s * 0.34);
-  drawSprite(ctx, sprites.castle, cx, cy + s * 0.16, s * 1.75, s * 1.75);
+  drawShadow(ctx, cx, cy + s * 0.14, s * 0.95, s * 0.36);
+
+  const padGrad = ctx.createRadialGradient(cx, cy - s * 0.05, s * 0.1, cx, cy + s * 0.1, s);
+  padGrad.addColorStop(0, shade('#5b6b74', 0.22));
+  padGrad.addColorStop(1, shade('#5b6b74', -0.25));
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + s * 0.12, s * 0.95, s * 0.4, 0, 0, Math.PI * 2);
+  fillOutlined(ctx, padGrad, s * 0.03);
+
+  ctx.strokeStyle = alpha('#ffb020', 0.85);
+  ctx.lineWidth = s * 0.03;
+  ctx.setLineDash([s * 0.08, s * 0.06]);
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + s * 0.12, s * 0.78, s * 0.32, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  const towerH = s * 1.3;
+  const towerW = s * 0.62;
+  const bodyGrad = ctx.createLinearGradient(cx - towerW / 2, cy - towerH, cx + towerW / 2, cy);
+  bodyGrad.addColorStop(0, shade('#8b98a0', 0.2));
+  bodyGrad.addColorStop(1, shade('#8b98a0', -0.3));
+  ctx.beginPath();
+  ctx.moveTo(cx - towerW / 2, cy);
+  ctx.lineTo(cx - towerW * 0.38, cy - towerH);
+  ctx.lineTo(cx + towerW * 0.38, cy - towerH);
+  ctx.lineTo(cx + towerW / 2, cy);
+  ctx.closePath();
+  fillOutlined(ctx, bodyGrad, s * 0.035);
+
+  ctx.fillStyle = '#5ad1ff';
+  for (let row = 0; row < 3; row++) {
+    const t = 0.25 + row * 0.22;
+    const y = cy - towerH * t;
+    const rowW = towerW * (0.34 + (1 - t) * 0.1);
+    ctx.beginPath();
+    ctx.rect(cx - rowW / 2, y, rowW, s * 0.06);
+    ctx.fill();
+  }
+
+  ctx.beginPath();
+  ctx.arc(cx, cy - towerH, towerW * 0.34, Math.PI, 0);
+  fillOutlined(ctx, shade('#8b98a0', 0.1), s * 0.03);
+
+  const beaconY = cy - towerH - towerW * 0.34;
+  ctx.strokeStyle = '#3c464d';
+  ctx.lineWidth = s * 0.02;
+  ctx.beginPath();
+  ctx.moveTo(cx, beaconY);
+  ctx.lineTo(cx, beaconY - s * 0.22);
+  ctx.stroke();
+  const glow = ctx.createRadialGradient(cx, beaconY - s * 0.22, 0, cx, beaconY - s * 0.22, s * 0.12);
+  glow.addColorStop(0, '#ffffff');
+  glow.addColorStop(0.5, '#ff4d4d');
+  glow.addColorStop(1, alpha('#ff4d4d', 0.15));
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(cx, beaconY - s * 0.22, s * 0.09, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 // ---------------------------------------------------------------- towers
 
+/** Real Kenney turret sprites for all 4 types. Frost/mage share the same
+ * red rocket-launcher art as the other two in the source pack, so they're
+ * hue-rotated (blue/cyan, purple) to stay visually distinct as "energy"
+ * weapons next to the "kinetic" archer/trebuchet. */
 export function drawTower(
   ctx: CanvasRenderingContext2D,
   cx: number,
@@ -130,154 +194,66 @@ export function drawTower(
   def: TowerDef,
 ): void {
   const scale = 0.92 + (level - 1) * 0.12;
-  const color = def.color;
   const accent = def.accentColor;
+  const groundY = cy - s * 0.02;
 
-  drawShadow(ctx, cx, cy + s * 0.04, s * 0.34, s * 0.15);
-  const baseGrad = ctx.createRadialGradient(cx, cy - s * 0.02, s * 0.05, cx, cy, s * 0.32);
-  baseGrad.addColorStop(0, shade('#867d6d', 0.18));
-  baseGrad.addColorStop(1, shade('#867d6d', -0.2));
+  drawShadow(ctx, cx, cy + s * 0.05, s * 0.36, s * 0.16);
+
+  const baseGrad = ctx.createRadialGradient(cx, cy - s * 0.02, s * 0.05, cx, cy, s * 0.34);
+  baseGrad.addColorStop(0, shade('#5b6b74', 0.22));
+  baseGrad.addColorStop(1, shade('#5b6b74', -0.25));
   ctx.beginPath();
-  ctx.ellipse(cx, cy, s * 0.32, s * 0.16, 0, 0, Math.PI * 2);
-  fillOutlined(ctx, baseGrad, s * 0.025);
+  ctx.ellipse(cx, cy, s * 0.34, s * 0.17, 0, 0, Math.PI * 2);
+  fillOutlined(ctx, baseGrad, s * 0.02);
+  ctx.strokeStyle = alpha(accent, 0.7);
+  ctx.lineWidth = s * 0.015;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, s * 0.26, s * 0.13, 0, 0, Math.PI * 2);
+  ctx.stroke();
 
-  const groundY = cy - s * 0.03;
+  const sprite = sprites.towers[type];
+  const ratio = sprite.naturalWidth && sprite.naturalHeight ? sprite.naturalWidth / sprite.naturalHeight : 1;
+  const h = s * 0.98 * scale;
+  const w = h * ratio;
+  const hueRotate = type === 'frost' ? 180 : type === 'mage' ? 265 : 0;
 
-  switch (type) {
-    case 'archer': {
-      const bodyH = s * 0.55 * scale;
-      const r = s * 0.22;
-      const grad = ctx.createLinearGradient(cx - r, groundY - bodyH, cx + r, groundY);
-      grad.addColorStop(0, shade(color, 0.22));
-      grad.addColorStop(1, shade(color, -0.25));
-      ctx.beginPath();
-      ctx.moveTo(cx - r, groundY);
-      ctx.lineTo(cx - r * 0.85, groundY - bodyH);
-      ctx.lineTo(cx + r * 0.85, groundY - bodyH);
-      ctx.lineTo(cx + r, groundY);
-      ctx.closePath();
-      fillOutlined(ctx, grad, s * 0.032);
-
-      // mortar lines: a coursed-stone texture instead of a flat gradient fill
-      ctx.strokeStyle = 'rgba(20,12,6,0.25)';
-      ctx.lineWidth = s * 0.012;
-      for (let row = 1; row < 4; row++) {
-        const t = row / 4;
-        const y = groundY - bodyH * t;
-        const rowR = r * 0.85 + (r - r * 0.85) * t;
-        ctx.beginPath();
-        ctx.moveTo(cx - rowR, y);
-        ctx.lineTo(cx + rowR, y);
-        ctx.stroke();
-      }
-
-      ctx.fillStyle = shade(color, -0.35);
-      for (let i = -2; i <= 2; i++) {
-        ctx.fillRect(cx + i * r * 0.36 - s * 0.03, groundY - bodyH - s * 0.08, s * 0.06, s * 0.09);
-      }
-
-      ctx.strokeStyle = '#4a3320';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(cx, groundY - bodyH - s * 0.08);
-      ctx.lineTo(cx, groundY - bodyH - s * 0.28);
-      ctx.stroke();
-      ctx.fillStyle = accent;
-      ctx.beginPath();
-      ctx.moveTo(cx, groundY - bodyH - s * 0.28);
-      ctx.lineTo(cx + s * 0.12, groundY - bodyH - s * 0.22);
-      ctx.lineTo(cx, groundY - bodyH - s * 0.16);
-      ctx.closePath();
-      ctx.fill();
-      break;
-    }
-    case 'trebuchet': {
-      const apexY = groundY - s * 0.42 * scale;
-      ctx.strokeStyle = shade(color, -0.15);
-      ctx.lineWidth = s * 0.09;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(cx - s * 0.24, groundY);
-      ctx.lineTo(cx, apexY);
-      ctx.lineTo(cx + s * 0.24, groundY);
-      ctx.stroke();
-
-      const armLen = s * 0.5 * scale;
-      const armAngle = -0.55;
-      const ex = cx + Math.sin(armAngle) * armLen;
-      const ey = apexY - Math.cos(armAngle) * armLen;
-      const wx = cx - Math.sin(armAngle) * armLen * 0.7;
-      const wy = apexY + Math.cos(armAngle) * armLen * 0.7;
-      ctx.strokeStyle = color;
-      ctx.lineWidth = s * 0.06;
-      ctx.beginPath();
-      ctx.moveTo(wx, wy);
-      ctx.lineTo(ex, ey);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.rect(wx - s * 0.09, wy - s * 0.09, s * 0.18, s * 0.18);
-      fillOutlined(ctx, shade(accent, -0.1), s * 0.025);
-
-      ctx.beginPath();
-      ctx.arc(ex, ey, s * 0.09, 0, Math.PI * 2);
-      fillOutlined(ctx, shade('#867d6d', 0.1), s * 0.025);
-
-      ctx.fillStyle = '#2a2530';
-      ctx.beginPath();
-      ctx.arc(cx, apexY, s * 0.035, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-    case 'frost':
-    case 'mage': {
-      const bodyH = s * 0.5 * scale;
-      const r = s * 0.2;
-      const grad = ctx.createLinearGradient(cx - r, groundY - bodyH, cx + r, groundY);
-      grad.addColorStop(0, shade(color, 0.2));
-      grad.addColorStop(1, shade(color, -0.25));
-      ctx.beginPath();
-      ctx.moveTo(cx, groundY - bodyH);
-      ctx.lineTo(cx + r, groundY);
-      ctx.lineTo(cx - r, groundY);
-      ctx.closePath();
-      fillOutlined(ctx, grad, s * 0.03);
-
-      ctx.beginPath();
-      ctx.arc(cx, groundY - bodyH - s * 0.02, s * 0.1, 0, Math.PI * 2);
-      fillOutlined(ctx, shade(color, -0.4), s * 0.025);
-
-      const glowY = groundY - bodyH - (type === 'mage' ? s * 0.32 : s * 0.05);
-      const glowX = type === 'mage' ? cx + s * 0.14 : cx;
-      if (type === 'mage') {
-        ctx.strokeStyle = '#3e2c1a';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(cx + s * 0.05, groundY - bodyH * 0.6);
-        ctx.lineTo(glowX, glowY);
-        ctx.stroke();
-      }
-      const orbGrad = ctx.createRadialGradient(glowX, glowY, 0, glowX, glowY, s * 0.11);
-      orbGrad.addColorStop(0, '#ffffff');
-      orbGrad.addColorStop(0.4, accent);
-      orbGrad.addColorStop(1, alpha(accent, 0.2));
-      ctx.fillStyle = orbGrad;
-      ctx.beginPath();
-      ctx.arc(glowX, glowY, s * 0.11, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-  }
+  ctx.save();
+  if (hueRotate) ctx.filter = `hue-rotate(${hueRotate}deg) saturate(1.35)`;
+  const prevSmoothing = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
+  drawSprite(ctx, sprite, cx, groundY + h * 0.06, w, h);
+  ctx.imageSmoothingEnabled = prevSmoothing;
+  ctx.restore();
 
   for (let i = 0; i < level; i++) {
     ctx.fillStyle = accent;
     ctx.beginPath();
-    ctx.arc(cx - s * 0.16 + i * s * 0.16, cy + s * 0.02, s * 0.035, 0, Math.PI * 2);
+    ctx.arc(cx - s * 0.16 + i * s * 0.16, cy + s * 0.09, s * 0.035, 0, Math.PI * 2);
     ctx.fill();
   }
 }
 
 // ---------------------------------------------------------------- enemies
+
+/** Draws a bottom-anchored creature/vehicle sprite in local (already
+ * translated+flipped) coordinates, plus a matching ground shadow. */
+function drawCreatureSprite(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  h: number,
+  shadowCy: number,
+  shadowRx: number,
+  shadowRy: number,
+): void {
+  drawShadow(ctx, 0, shadowCy, shadowRx, shadowRy);
+  if (img.complete && img.naturalWidth > 0) {
+    const w = h * (img.naturalWidth / img.naturalHeight);
+    const prevSmoothing = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, -w / 2, -h, w, h);
+    ctx.imageSmoothingEnabled = prevSmoothing;
+  }
+}
 
 export function drawEnemy(
   ctx: CanvasRenderingContext2D,
@@ -289,119 +265,24 @@ export function drawEnemy(
   facing: 1 | -1,
 ): void {
   const r = s * def.radius;
-  const color = def.color;
-  const dark = shade(color, -0.32);
 
   ctx.save();
   ctx.translate(cx, cy);
   ctx.scale(facing, 1);
 
   switch (type) {
-    case 'orc': {
-      // Real pixel-art sprite (0x72's CC0 Dungeon Tileset II) instead of a
-      // hand-drawn shape — see src/assets/monsters/SOURCE.txt.
-      const img = sprites.orc;
-      drawShadow(ctx, 0, r * 0.1, r * 1.05, r * 0.42);
-      if (img.complete && img.naturalWidth > 0) {
-        const h = s * 0.95;
-        const w = h * (img.naturalWidth / img.naturalHeight);
-        const prevSmoothing = ctx.imageSmoothingEnabled;
-        ctx.imageSmoothingEnabled = false; // keep the native pixel-art crispness when scaled up
-        ctx.drawImage(img, -w / 2, -h, w, h);
-        ctx.imageSmoothingEnabled = prevSmoothing;
-      }
+    case 'orc':
+      drawCreatureSprite(ctx, sprites.enemies.orc, s * 0.95, r * 0.1, r * 1.05, r * 0.42);
       break;
-    }
-    case 'goblin': {
-      drawShadow(ctx, 0, r * 0.1, r * 1.15, r * 0.45);
-      const grad = ctx.createLinearGradient(0, -r * 1.5, 0, 0);
-      grad.addColorStop(0, shade(color, 0.18));
-      grad.addColorStop(1, shade(color, -0.2));
-      roundRect(ctx, -r * 1.05, -r * 1.3, r * 1.7, r * 1.05, r * 0.4);
-      fillOutlined(ctx, grad, r * 0.14);
-      ctx.fillStyle = dark;
-      ctx.beginPath();
-      ctx.moveTo(r * 0.5, -r * 1.05);
-      ctx.lineTo(r * 1.4, -r * 0.85);
-      ctx.lineTo(r * 0.5, -r * 0.6);
-      ctx.closePath();
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(-r * 0.55, -r * 1.25);
-      ctx.lineTo(-r * 0.85, -r * 1.7);
-      ctx.lineTo(-r * 0.25, -r * 1.35);
-      ctx.closePath();
-      ctx.fill();
+    case 'goblin':
+      drawCreatureSprite(ctx, sprites.enemies.goblin, s * 0.72, r * 0.1, r * 1.15, r * 0.45);
       break;
-    }
-    case 'troll': {
-      drawShadow(ctx, 0, r * 0.15, r * 1.3, r * 0.55);
-      const grad = ctx.createLinearGradient(0, -r * 2.4, 0, 0);
-      grad.addColorStop(0, shade(color, 0.18));
-      grad.addColorStop(1, shade(color, -0.2));
-      roundRect(ctx, -r, -r * 2.1, r * 2, r * 1.9, r * 0.35);
-      fillOutlined(ctx, grad, r * 0.14);
-      roundRect(ctx, -r * 0.6, -r * 2.5, r * 1.2, r * 0.65, r * 0.2);
-      fillOutlined(ctx, dark, r * 0.12);
-      ctx.strokeStyle = '#5a4a2e';
-      ctx.lineWidth = r * 0.35;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(r * 1.05, -r * 0.4);
-      ctx.lineTo(r * 1.7, -r * 1.6);
-      ctx.stroke();
+    case 'troll':
+      drawCreatureSprite(ctx, sprites.enemies.troll, s * 1.15, r * 0.15, r * 1.3, r * 0.55);
       break;
-    }
-    case 'dragon': {
-      drawShadow(ctx, 0, r * 0.2, r * 1.9, r * 0.7);
-      const wingGrad = ctx.createLinearGradient(0, -r * 1.9, 0, -r * 1.1);
-      wingGrad.addColorStop(0, shade(color, -0.1));
-      wingGrad.addColorStop(1, shade(color, -0.35));
-      ctx.fillStyle = wingGrad;
-      ctx.beginPath();
-      ctx.moveTo(-r * 0.3, -r * 1.6);
-      ctx.quadraticCurveTo(-r * 2.1, -r * 2.4, -r * 1.9, -r * 0.9);
-      ctx.quadraticCurveTo(-r * 1.1, -r * 1.2, -r * 0.3, -r * 1.6);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(r * 0.3, -r * 1.6);
-      ctx.quadraticCurveTo(r * 2.1, -r * 2.4, r * 1.9, -r * 0.9);
-      ctx.quadraticCurveTo(r * 1.1, -r * 1.2, r * 0.3, -r * 1.6);
-      ctx.fill();
-
-      ctx.fillStyle = dark;
-      ctx.beginPath();
-      ctx.moveTo(-r * 0.3, -r * 0.3);
-      ctx.quadraticCurveTo(-r * 1.8, -r * 0.5, -r * 2.2, r * 0.1);
-      ctx.quadraticCurveTo(-r * 1.4, r * 0.05, -r * 0.3, -r * 0.1);
-      ctx.fill();
-
-      const bodyGrad = ctx.createRadialGradient(-r * 0.2, -r * 1.4, r * 0.2, 0, -r * 1.1, r * 1.6);
-      bodyGrad.addColorStop(0, shade(color, 0.24));
-      bodyGrad.addColorStop(1, shade(color, -0.15));
-      ctx.beginPath();
-      ctx.ellipse(0, -r * 1.1, r * 1.5, r * 1.15, 0, 0, Math.PI * 2);
-      fillOutlined(ctx, bodyGrad, r * 0.1);
-
-      ctx.fillStyle = shade(color, 0.05);
-      ctx.beginPath();
-      ctx.ellipse(r * 1.05, -r * 1.7, r * 0.55, r * 0.5, -0.3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#e8dfc0';
-      ctx.beginPath();
-      ctx.moveTo(r * 0.75, -r * 2.1);
-      ctx.lineTo(r * 0.95, -r * 2.55);
-      ctx.lineTo(r * 1.1, -r * 2.05);
-      ctx.closePath();
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(r * 1.25, -r * 2.05);
-      ctx.lineTo(r * 1.5, -r * 2.45);
-      ctx.lineTo(r * 1.55, -r * 1.95);
-      ctx.closePath();
-      ctx.fill();
+    case 'dragon':
+      drawCreatureSprite(ctx, sprites.enemies.dragon, s * 1.5, r * 0.2, r * 1.9, r * 0.7);
       break;
-    }
   }
 
   ctx.restore();
@@ -421,30 +302,17 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 
 export function drawProjectile(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number, type: TowerTypeId, color: string): void {
   switch (type) {
-    case 'trebuchet': {
-      const grad = ctx.createRadialGradient(cx - s * 0.02, cy - s * 0.02, 0, cx, cy, s * 0.09);
-      grad.addColorStop(0, shade('#867d6d', 0.3));
-      grad.addColorStop(1, shade('#867d6d', -0.2));
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(cx, cy, s * 0.09, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
+    case 'trebuchet':
     case 'archer': {
-      ctx.strokeStyle = '#6b4a28';
-      ctx.lineWidth = s * 0.035;
-      ctx.beginPath();
-      ctx.moveTo(cx - s * 0.16, cy);
-      ctx.lineTo(cx + s * 0.16, cy);
-      ctx.stroke();
-      ctx.fillStyle = '#3a3a42';
-      ctx.beginPath();
-      ctx.moveTo(cx + s * 0.16, cy);
-      ctx.lineTo(cx + s * 0.1, cy - s * 0.04);
-      ctx.lineTo(cx + s * 0.1, cy + s * 0.04);
-      ctx.closePath();
-      ctx.fill();
+      const img = sprites.projectileRocket;
+      if (img.complete && img.naturalWidth > 0) {
+        const h = s * 0.4;
+        const w = h * (img.naturalWidth / img.naturalHeight);
+        const prevSmoothing = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+        ctx.imageSmoothingEnabled = prevSmoothing;
+      }
       break;
     }
     default: {

@@ -84,7 +84,7 @@ export class UIManager {
     const screen = el('div', 'screen');
     screen.append(
       el('h1', 'title', 'Tower Keep'),
-      el('p', 'subtitle', 'Défends ta forteresse médiévale — uniquement pour toi.'),
+      el('p', 'subtitle', 'Défends ta base spatiale — uniquement pour toi.'),
     );
     const playBtn = el('button', 'primary-btn', 'Jouer');
     playBtn.onclick = () => this.onPlay?.();
@@ -99,7 +99,7 @@ export class UIManager {
     const credit = el(
       'p',
       'credit',
-      'Décors : "Medieval RTS" par Kenney · Orc : "Dungeon Tileset II" par 0x72 — CC0',
+      'Graphismes : "Tower Defense (top-down) Pack" par Kenney — CC0',
     );
     screen.append(credit);
 
@@ -337,7 +337,7 @@ export class UIManager {
     this.clearModal();
     const { backdrop, card } = this.buildModalCard();
     card.append(el('div', 'modal-title defeat', 'Défaite'));
-    card.append(el('div', 'modal-stats', `Ta forteresse est tombée à la vague ${state.waveNumber + 1}/${state.totalWaves}.`));
+    card.append(el('div', 'modal-stats', `Ta base est tombée à la vague ${state.waveNumber + 1}/${state.totalWaves}.`));
     const actions = el('div', 'modal-actions');
     const retry = el('button', 'primary-btn', 'Réessayer');
     retry.onclick = () => this.onRetryLevel?.();

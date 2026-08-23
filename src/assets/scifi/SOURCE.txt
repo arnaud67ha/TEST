@@ -1,0 +1,7 @@
+All PNGs in this folder are cropped, unmodified tiles from Kenney's
+"Tower Defense (top-down) Pack" (CC0 1.0 Universal — kenney.nl),
+via github.com/jhonnold/tower-defense-v2 (img/PNG/Default size/), a repo
+that bundles the pack and credits Kenney in its LICENSE.txt.
+
+CC0 1.0 Universal: https://creativecommons.org/publicdomain/zero/1.0/
+No attribution required, but credited here and in the game's main menu.

@@ -56,10 +56,17 @@ export class Canvas2DRenderer {
   }
 
   private computeTransform(w: number, h: number): void {
-    const margin = 16;
-    this.tileSize = Math.min((w - margin * 2) / this.gridWidth, (h - margin * 2) / this.gridHeight);
+    // Fit the board into the space between the HUD bars (not the full
+    // screen) so it's never hidden behind them, and use every pixel of
+    // whichever axis is the tighter fit instead of leaving it padded.
+    const marginX = 6;
+    const topInset = 58;
+    const bottomInset = 170;
+    const availW = Math.max(1, w - marginX * 2);
+    const availH = Math.max(1, h - topInset - bottomInset);
+    this.tileSize = Math.min(availW / this.gridWidth, availH / this.gridHeight);
     this.originX = w / 2 - (this.gridWidth * this.tileSize) / 2;
-    this.originY = h / 2 - (this.gridHeight * this.tileSize) / 2;
+    this.originY = topInset + availH / 2 - (this.gridHeight * this.tileSize) / 2;
   }
 
   private cellCenter(gx: number, gy: number): Vec2 {

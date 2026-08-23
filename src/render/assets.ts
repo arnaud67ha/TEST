@@ -1,24 +1,19 @@
-// Real painted sprites from Kenney's "Medieval RTS" pack (CC0 1.0,
-// kenney.nl) — see public/assets/medieval-rts/KENNEY_LICENSE.txt.
-// Towers and monsters have no equivalent in that pack and stay hand-drawn
-// in sprites.ts. Imported (not just referenced by URL) so Vite inlines
-// them as data URIs — these are tiny, and it keeps the single-file
-// artifact build self-contained.
-import grassUrl from '../assets/medieval-rts/grass.png';
-import dirtUrl from '../assets/medieval-rts/dirt.png';
-import castleUrl from '../assets/medieval-rts/castle.png';
-import tree1Url from '../assets/medieval-rts/tree1.png';
-import tree2Url from '../assets/medieval-rts/tree2.png';
-import tree3Url from '../assets/medieval-rts/tree3.png';
-import tree4Url from '../assets/medieval-rts/tree4.png';
-import rock1Url from '../assets/medieval-rts/rock1.png';
-import rock2Url from '../assets/medieval-rts/rock2.png';
-import rock3Url from '../assets/medieval-rts/rock3.png';
-import rock4Url from '../assets/medieval-rts/rock4.png';
-import rock5Url from '../assets/medieval-rts/rock5.png';
-// Orc: 0x72's "Dungeon Tileset II" (CC0 1.0), via github.com/vickean/phaser_dungeon_crawler
-// (bundles the pack's enemies/lizard_f atlas — see src/assets/monsters/SOURCE.txt).
-import orcUrl from '../assets/monsters/orc.png';
+// Real sprites from Kenney's "Tower Defense (top-down) Pack" (CC0 1.0,
+// kenney.nl), via github.com/jhonnold/tower-defense-v2 — see
+// src/assets/scifi/SOURCE.txt.
+import towerArcherUrl from '../assets/scifi/tower-archer.png';
+import towerTrebuchetUrl from '../assets/scifi/tower-trebuchet.png';
+import towerFrostUrl from '../assets/scifi/tower-frost.png';
+import towerMageUrl from '../assets/scifi/tower-mage.png';
+import enemyOrcUrl from '../assets/scifi/enemy-orc.png';
+import enemyGoblinUrl from '../assets/scifi/enemy-goblin.png';
+import enemyTrollUrl from '../assets/scifi/enemy-troll.png';
+import enemyDragonUrl from '../assets/scifi/enemy-dragon.png';
+import groundGrassUrl from '../assets/scifi/ground-grass.png';
+import groundPathUrl from '../assets/scifi/ground-path.png';
+import decoBushUrl from '../assets/scifi/deco-bush.png';
+import decoRockUrl from '../assets/scifi/deco-rock.png';
+import projectileRocketUrl from '../assets/scifi/projectile-rocket.png';
 
 function img(src: string): HTMLImageElement {
   const el = new Image();
@@ -27,15 +22,34 @@ function img(src: string): HTMLImageElement {
 }
 
 export const sprites = {
-  grass: img(grassUrl),
-  dirt: img(dirtUrl),
-  castle: img(castleUrl),
-  trees: [img(tree1Url), img(tree2Url), img(tree3Url), img(tree4Url)],
-  rocks: [img(rock1Url), img(rock2Url), img(rock3Url), img(rock4Url), img(rock5Url)],
-  orc: img(orcUrl),
+  groundGrass: img(groundGrassUrl),
+  groundPath: img(groundPathUrl),
+  bushes: [img(decoBushUrl)],
+  rocks: [img(decoRockUrl)],
+  towers: {
+    archer: img(towerArcherUrl),
+    trebuchet: img(towerTrebuchetUrl),
+    frost: img(towerFrostUrl),
+    mage: img(towerMageUrl),
+  },
+  enemies: {
+    orc: img(enemyOrcUrl),
+    goblin: img(enemyGoblinUrl),
+    troll: img(enemyTrollUrl),
+    dragon: img(enemyDragonUrl),
+  },
+  projectileRocket: img(projectileRocketUrl),
 };
 
-const allImages = [sprites.grass, sprites.dirt, sprites.castle, sprites.orc, ...sprites.trees, ...sprites.rocks];
+const allImages = [
+  sprites.groundGrass,
+  sprites.groundPath,
+  sprites.projectileRocket,
+  ...sprites.bushes,
+  ...sprites.rocks,
+  ...Object.values(sprites.towers),
+  ...Object.values(sprites.enemies),
+];
 
 let readyPromise: Promise<void> | null = null;
 

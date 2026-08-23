@@ -1,9 +1,0 @@
-orc.png
-====
-Cropped from 0x72's "16x16 DungeonTileset II" (CC0 1.0 Universal — https://0x72.itch.io/dungeontileset-ii),
-via the exact-pixel atlas in github.com/vickean/phaser_dungeon_crawler
-(assets/enemies/lizard_f.png + lizard_f.json, frame "lizard_f_idle_anim_f0"),
-a repo that credits 0x72 for the asset pack in its README.
-
-CC0 1.0 Universal: https://creativecommons.org/publicdomain/zero/1.0/
-No attribution required, but credited here and in the game's main menu.
