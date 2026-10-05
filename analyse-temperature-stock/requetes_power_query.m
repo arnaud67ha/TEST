@@ -116,7 +116,7 @@ let
 in
     Table.RemoveColumns(AjoutSeuil, {"Hors"});
 
-shared Plages_72h = let
+shared Plages_toutes = let
     Bas = Table.Buffer(#"Sonde bas"),
     Haut = Table.Buffer(#"Sonde haut"),
     DernierBas = List.Max(Bas[HorodatageUTC]),
@@ -129,11 +129,80 @@ shared Plages_72h = let
     Toutes = Table.Combine({Vide}
         & List.Transform(SeuilsMini, each fx_Plages(Bas, _, "Bas"))
         & List.Transform(SeuilsMaxi, each fx_Plages(Haut, _, "Haut"))),
-    Longues = Table.SelectRows(Toutes, each [DureeHeures] >= SeuilDureeHeures),
     // "En cours" = la plage court encore au dernier relevé de la sonde
-    AjoutEnCours = Table.AddColumn(Longues, "EnCours", each [FinUTC] = (if [Sonde] = "Bas" then DernierBas else DernierHaut), type logical)
+    AjoutEnCours = Table.AddColumn(Toutes, "EnCours", each [FinUTC] = (if [Sonde] = "Bas" then DernierBas else DernierHaut), type logical)
 in
     Table.Buffer(AjoutEnCours);
+
+shared Plages_72h = let
+    Longues = Table.SelectRows(Plages_toutes, each [DureeHeures] >= SeuilDureeHeures)
+in
+    Table.Buffer(Longues);
+
+shared Palettes_seuils_T = let
+    Plages = Plages_toutes,
+    Bas = Table.Buffer(#"Sonde bas"),
+    Haut = Table.Buffer(#"Sonde haut"),
+    PremierReleve = List.Max({List.Min(Bas[Horodatage]), List.Min(Haut[Horodatage])}),
+    DernierReleve = List.Min({List.Max(Bas[Horodatage]), List.Max(Haut[Horodatage])}),
+    // Min de la sonde bas et max de la sonde haut par jour (heure France), pour retrouver vite les extrêmes depuis l'entrée
+    BasJour = Table.Buffer(Table.Group(Table.AddColumn(Bas, "Jour", each DateTime.Date([Horodatage]), type date), {"Jour"}, {{"Min", each List.Min([Temperature]), type number}})),
+    HautJour = Table.Buffer(Table.Group(Table.AddColumn(Haut, "Jour", each DateTime.Date([Horodatage]), type date), {"Jour"}, {{"Max", each List.Max([Temperature]), type number}})),
+    // Palette -> article -> seuils de la référence (masterdata)
+    Jointure = Table.NestedJoin(LT10, {"Article"}, TempRef, {"Article"}, "Ref", JoinKind.Inner),
+    AvecRef = Table.ExpandTableColumn(Jointure, "Ref", {"Désignation", "TempMini", "TempMaxi"}),
+    Analyse = Table.AddColumn(AvecRef, "A", (l) =>
+        let
+            d = l[#"Date EM"],
+            m = if d = null then null else DateTime.From(d),
+            e = if m = null then null else m - #duration(0, fx_DecalageFrance(m), 0, 0),
+            Pl = if e = null then Table.FirstN(Plages, 0) else Table.SelectRows(Plages, each
+                (([Sonde] = "Bas" and [Seuil] = l[TempMini]) or ([Sonde] = "Haut" and [Seuil] = l[TempMaxi])) and [FinUTC] > e),
+            // Partie de chaque plage postérieure à l'entrée de la palette
+            H = List.Transform(Table.ToRecords(Pl), (p) =>
+                [Sonde = p[Sonde], H = Duration.TotalHours(p[FinUTC] - List.Max({p[DebutUTC], e})), EnCours = p[EnCours]]),
+            HBas = List.Transform(List.Select(H, each [Sonde] = "Bas"), each [H]),
+            HHaut = List.Transform(List.Select(H, each [Sonde] = "Haut"), each [H]),
+            Longues = List.Select(H, each [H] >= SeuilDureeHeures),
+            vCouverture = if m = null then "Date EM absente"
+                else if m > DernierReleve then "Aucune (entrée après le dernier relevé)"
+                else if m < PremierReleve then "Partielle (entrée avant le 1er relevé)"
+                else "Complète",
+            vNb = List.Count(Longues),
+            vEnCours = List.AnyTrue(List.Transform(Longues, each [EnCours])),
+            vResultat = if m = null then "Date EM absente"
+                else if m > DernierReleve then "Pas de relevé depuis l'entrée"
+                else if vEnCours then "Dépassement en cours"
+                else if vNb > 0 then "Dépassement"
+                else if List.Count(H) > 0 then "Hors seuil < " & Text.From(SeuilDureeHeures) & " h"
+                else "Conforme"
+        in
+            [
+                TMin = if m = null then null else List.Min(Table.SelectRows(BasJour, each [Jour] >= d)[Min]),
+                TMax = if m = null then null else List.Max(Table.SelectRows(HautJour, each [Jour] >= d)[Max]),
+                HSous = Number.Round(List.Sum({0} & HBas), 1),
+                HDessus = Number.Round(List.Sum({0} & HHaut), 1),
+                PlusLongue = Number.Round(List.Max({0} & List.Transform(H, each [H])), 1),
+                Nb = vNb,
+                Resultat = vResultat,
+                Couverture = vCouverture,
+                Ordre = if vResultat = "Dépassement en cours" then 0 else if vResultat = "Dépassement" then 1
+                    else if Text.StartsWith(vResultat, "Hors seuil") then 2 else if vResultat = "Conforme" then 3
+                    else if Text.StartsWith(vResultat, "Pas de relevé") then 4 else 5
+            ]),
+    Developpe = Table.ExpandRecordColumn(Analyse, "A", {"Resultat", "TMin", "TMax", "HSous", "HDessus", "PlusLongue", "Nb", "Couverture", "Ordre"},
+        {"Résultat", "T° min sonde bas depuis entrée (°C)", "T° max sonde haut depuis entrée (°C)", "Heures sous le mini", "Heures au-dessus du maxi",
+         "Plus longue plage hors seuil (h)", "Nb dépassements", "Couverture relevés", "Ordre"}),
+    Types = Table.TransformColumnTypes(Developpe, {{"Résultat", type text}, {"T° min sonde bas depuis entrée (°C)", type number},
+        {"T° max sonde haut depuis entrée (°C)", type number}, {"Heures sous le mini", type number}, {"Heures au-dessus du maxi", type number},
+        {"Plus longue plage hors seuil (h)", type number}, {"Nb dépassements", Int64.Type}, {"Couverture relevés", type text}, {"Ordre", Int64.Type}}),
+    Renomme = Table.RenameColumns(Types, {{"TempMini", "Seuil mini (°C)"}, {"TempMaxi", "Seuil maxi (°C)"}}),
+    Tri = Table.Sort(Renomme, {{"Ordre", Order.Ascending}, {"Plus longue plage hors seuil (h)", Order.Descending}, {"Article", Order.Ascending}, {"Palette", Order.Ascending}}),
+    Colonnes = Table.SelectColumns(Tri, {"Article", "Désignation", "Lot", "Palette", "Emplacement", "Date EM", "Quantité", "UQ",
+        "Seuil mini (°C)", "Seuil maxi (°C)", "T° min sonde bas depuis entrée (°C)", "T° max sonde haut depuis entrée (°C)",
+        "Résultat", "Nb dépassements", "Plus longue plage hors seuil (h)", "Heures sous le mini", "Heures au-dessus du maxi", "Couverture relevés"})
+in
+    Colonnes;
 
 shared Detail_depassements = let
     Plages = Plages_72h,
