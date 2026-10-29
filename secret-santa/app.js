@@ -190,16 +190,38 @@
     save(); renderList(); show('list');
   });
 
+  // Confirmation shown in the page (native confirm() is blocked in some embeds).
+  let pendingAction = null;
+  function askConfirm(message, action) {
+    pendingAction = action;
+    $('action-confirm-text').textContent = message;
+    $('action-confirm').hidden = false;
+    $('list-actions').hidden = true;
+  }
+  function closeConfirm() {
+    pendingAction = null;
+    $('action-confirm').hidden = true;
+    $('list-actions').hidden = false;
+  }
+  $('action-confirm-no').addEventListener('click', closeConfirm);
+  $('action-confirm-yes').addEventListener('click', () => {
+    const action = pendingAction;
+    closeConfirm();
+    if (action) action();
+  });
+
   $('redraw-button').addEventListener('click', () => {
-    if (!confirm('Refaire le tirage ? Tout le monde devra redécouvrir son destinataire.')) return;
-    if (runDraw()) renderList();
+    askConfirm('Refaire le tirage ? Tout le monde devra redécouvrir son destinataire.', () => {
+      if (runDraw()) renderList();
+    });
   });
 
   $('reset-button').addEventListener('click', () => {
-    if (!confirm('Revenir à la préparation ? Le tirage actuel sera effacé.')) return;
-    state.assignment = null;
-    state.seen = [];
-    save(); renderSetup(); show('setup');
+    askConfirm('Revenir à la préparation ? Le tirage actuel sera effacé.', () => {
+      state.assignment = null;
+      state.seen = [];
+      save(); renderSetup(); show('setup');
+    });
   });
 
   // ---------- Démarrage ----------

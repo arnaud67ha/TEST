@@ -67,7 +67,14 @@
       </div>
       <ul id="reveal-list" class="name-grid"></ul>
       <p id="all-seen" class="done" hidden>🎄 Tout le monde a découvert son destinataire !</p>
-      <div class="footer-actions">
+      <div id="action-confirm" class="card center" hidden>
+        <p id="action-confirm-text"></p>
+        <div class="footer-actions">
+          <button id="action-confirm-yes" class="primary">Confirmer</button>
+          <button id="action-confirm-no" class="ghost">Annuler</button>
+        </div>
+      </div>
+      <div id="list-actions" class="footer-actions">
         <button id="redraw-button" class="ghost">Refaire le tirage</button>
         <button id="reset-button" class="ghost danger">Retour à la préparation</button>
       </div>
