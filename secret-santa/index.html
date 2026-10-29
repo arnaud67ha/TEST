@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Secret Santa</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app">
+    <header class="brand">
+      <span class="brand-icon" aria-hidden="true">🎁</span>
+      <h1>Secret Santa</h1>
+    </header>
+
+    <!-- 1. Préparation -->
+    <section id="screen-setup" class="screen" hidden>
+      <div class="card">
+        <h2>L'événement</h2>
+        <label>Nom
+          <input id="event-name" type="text" placeholder="Noël en famille" maxlength="60">
+        </label>
+        <div class="row">
+          <label>Budget max (€)
+            <input id="event-budget" type="number" min="0" step="1" placeholder="30">
+          </label>
+          <label>Date de l'échange
+            <input id="event-date" type="date">
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Participants <span id="participant-count" class="muted"></span></h2>
+        <form id="add-participant" class="inline-form">
+          <input id="participant-name" type="text" placeholder="Prénom" maxlength="30" autocomplete="off" aria-label="Prénom du participant">
+          <button type="submit">Ajouter</button>
+        </form>
+        <p id="participant-error" class="error" hidden></p>
+        <ul id="participant-list" class="chips"></ul>
+      </div>
+
+      <div class="card">
+        <h2>Exclusions</h2>
+        <p class="muted">Empêcher quelqu'un de tirer une personne précise (un couple, par exemple).</p>
+        <form id="add-exclusion" class="exclusion-form">
+          <select id="exclusion-a" aria-label="Personne qui offre"></select>
+          <span>ne tire pas</span>
+          <select id="exclusion-b" aria-label="Personne exclue"></select>
+          <label class="check"><input id="exclusion-both" type="checkbox" checked> dans les deux sens</label>
+          <button type="submit">Ajouter</button>
+        </form>
+        <p id="exclusion-error" class="error" hidden></p>
+        <ul id="exclusion-list" class="plain-list"></ul>
+      </div>
+
+      <p id="draw-error" class="error" hidden></p>
+      <button id="draw-button" class="primary big">Lancer le tirage</button>
+    </section>
+
+    <!-- 2. Liste des prénoms -->
+    <section id="screen-list" class="screen" hidden>
+      <div class="card center">
+        <h2 id="list-title"></h2>
+        <p id="list-meta" class="muted"></p>
+        <p>Passe le téléphone. Chacun touche <strong>son</strong> prénom.</p>
+      </div>
+      <ul id="reveal-list" class="name-grid"></ul>
+      <p id="all-seen" class="done" hidden>🎄 Tout le monde a découvert son destinataire !</p>
+      <div class="footer-actions">
+        <button id="redraw-button" class="ghost">Refaire le tirage</button>
+        <button id="reset-button" class="ghost danger">Retour à la préparation</button>
+      </div>
+    </section>
+
+    <!-- 3. Confirmation d'identité -->
+    <section id="screen-confirm" class="screen" hidden>
+      <div class="card center">
+        <p class="muted">Vérifie que personne ne regarde.</p>
+        <h2>C'est bien toi, <span id="confirm-name"></span> ?</h2>
+        <button id="reveal-button" class="primary big">Oui, révéler</button>
+        <button id="cancel-button" class="ghost">Non, revenir</button>
+      </div>
+    </section>
+
+    <!-- 4. Révélation -->
+    <section id="screen-reveal" class="screen" hidden>
+      <div class="card center reveal">
+        <p><span id="reveal-giver"></span>, tu offres un cadeau à</p>
+        <p id="reveal-receiver" class="receiver"></p>
+        <p id="reveal-meta" class="muted"></p>
+        <button id="hide-button" class="primary big">J'ai retenu, cacher</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="draw.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
