@@ -179,7 +179,19 @@
     $('reveal-giver').textContent = current;
     $('reveal-receiver').textContent = state.assignment[current];
     $('reveal-meta').textContent = formatMeta();
+    $('gift').classList.remove('open');
+    $('gift').disabled = false;
+    $('gift-hint').hidden = false;
+    $('reveal-result').hidden = true;
     show('reveal');
+  });
+
+  $('gift').addEventListener('click', () => {
+    $('gift').classList.add('open');
+    $('gift').disabled = true;
+    $('gift-hint').hidden = true;
+    $('reveal-result').hidden = false;
+    if (window.festive) window.festive.burst($('gift'));
   });
 
   $('hide-button').addEventListener('click', () => {

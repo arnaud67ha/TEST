@@ -8,7 +8,9 @@ Ouvrir `index.html` dans un navigateur (aucune installation, aucun serveur, fonc
 
 1. Saisir l'événement (nom, budget, date), les participants et les exclusions.
 2. Lancer le tirage.
-3. Passer le téléphone : chacun touche son prénom, confirme, découvre son destinataire puis le cache.
+3. Passer le téléphone : chacun touche son prénom, confirme, ouvre son paquet cadeau pour découvrir son destinataire, puis le cache.
+
+De temps en temps, un clic déclenche une surprise (Père Noël en traîneau, boule de neige, renne…).
 
 ## Tests
 ```bash

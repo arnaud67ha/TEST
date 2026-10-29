@@ -4,13 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Secret Santa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Nunito:wght@400;600;800&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <canvas id="snow" aria-hidden="true"></canvas>
+  <div class="garland" aria-hidden="true"></div>
   <main id="app">
     <header class="brand">
-      <span class="brand-icon" aria-hidden="true">🎁</span>
       <h1>Secret Santa</h1>
+      <p class="tagline">Le tirage au sort de Noël</p>
     </header>
 
     <!-- 1. Préparation -->
@@ -66,7 +71,7 @@
         <p>Passe le téléphone. Chacun touche <strong>son</strong> prénom.</p>
       </div>
       <ul id="reveal-list" class="name-grid"></ul>
-      <p id="all-seen" class="done" hidden>🎄 Tout le monde a découvert son destinataire !</p>
+      <p id="all-seen" class="done" hidden>Tout le monde a découvert son destinataire. Joyeux Noël !</p>
       <div id="action-confirm" class="card center" hidden>
         <p id="action-confirm-text"></p>
         <div class="footer-actions">
@@ -93,15 +98,24 @@
     <!-- 4. Révélation -->
     <section id="screen-reveal" class="screen" hidden>
       <div class="card center reveal">
-        <p><span id="reveal-giver"></span>, tu offres un cadeau à</p>
-        <p id="reveal-receiver" class="receiver"></p>
-        <p id="reveal-meta" class="muted"></p>
-        <button id="hide-button" class="primary big">J'ai retenu, cacher</button>
+        <p class="reveal-intro"><span id="reveal-giver"></span>, ton cadeau t'attend</p>
+        <button id="gift" class="gift" type="button" aria-label="Ouvrir le cadeau">
+          <span class="gift-lid"></span>
+          <span class="gift-box"></span>
+        </button>
+        <p id="gift-hint" class="muted">Touche le paquet pour l'ouvrir</p>
+        <div id="reveal-result" hidden>
+          <p>Tu offres un cadeau à</p>
+          <p id="reveal-receiver" class="receiver"></p>
+          <p id="reveal-meta" class="muted"></p>
+          <button id="hide-button" class="primary big">J'ai retenu, cacher</button>
+        </div>
       </div>
     </section>
   </main>
 
   <script src="draw.js"></script>
+  <script src="festive.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
