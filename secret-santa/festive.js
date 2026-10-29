@@ -101,12 +101,17 @@
   }
 
   // Sleigh bells, then a rising C major arpeggio ending on a chord.
-  function jingle() {
-    if (!soundOn) return;
+  function ready() {
+    if (!soundOn) return false;
     try {
       audio = audio || new (window.AudioContext || window.webkitAudioContext)();
       if (audio.state === 'suspended') audio.resume();
-    } catch (e) { return; }
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function jingle() {
+    if (!ready()) return;
     const t = audio.currentTime + 0.02;
     for (let i = 0; i < 14; i++) {
       const at = t + i * 0.035 + Math.random() * 0.02;
@@ -115,6 +120,64 @@
     [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => note(f, t + 0.25 + i * 0.1, 0.35, 'triangle', 0.18));
     [523.25, 659.25, 783.99, 1046.5].forEach((f) => note(f, t + 0.75, 0.9, 'triangle', 0.09));
     note(2093, t + 0.75, 0.6, 'sine', 0.05);
+  }
+
+  // Prout : a low buzzing sawtooth whose pitch flutters and sags, plus a
+  // breathy noise layer, chopped by a fast tremolo so it sputters.
+  function fart() {
+    if (!ready()) return;
+    const t = audio.currentTime + 0.02;
+    const duration = 0.35 + Math.random() * 0.8;
+    const pitch = 75 + Math.random() * 70;
+
+    const out = audio.createGain();
+    out.gain.setValueAtTime(0.0001, t);
+    out.gain.exponentialRampToValueAtTime(0.5, t + 0.03);
+    out.gain.setValueAtTime(0.5, t + duration * 0.7);
+    out.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+    const filter = audio.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 450 + Math.random() * 400;
+    filter.connect(out).connect(audio.destination);
+
+    const tremolo = audio.createGain();
+    tremolo.gain.value = 0.6;
+    tremolo.connect(filter);
+    const chop = audio.createOscillator();
+    const chopDepth = audio.createGain();
+    chop.type = 'square';
+    chop.frequency.setValueAtTime(10 + Math.random() * 14, t);
+    chop.frequency.linearRampToValueAtTime(6 + Math.random() * 6, t + duration);
+    chopDepth.gain.value = 0.4;
+    chop.connect(chopDepth).connect(tremolo.gain);
+
+    const buzz = audio.createOscillator();
+    buzz.type = 'sawtooth';
+    buzz.frequency.setValueAtTime(pitch, t);
+    buzz.frequency.exponentialRampToValueAtTime(pitch * (0.45 + Math.random() * 0.3), t + duration);
+    const flutter = audio.createOscillator();
+    const flutterDepth = audio.createGain();
+    flutter.frequency.value = 25 + Math.random() * 20;
+    flutterDepth.gain.value = pitch * 0.25;
+    flutter.connect(flutterDepth).connect(buzz.frequency);
+    buzz.connect(tremolo);
+
+    const noise = audio.createBufferSource();
+    const buffer = audio.createBuffer(1, Math.ceil(audio.sampleRate * duration), audio.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    noise.buffer = buffer;
+    const breath = audio.createBiquadFilter();
+    breath.type = 'bandpass';
+    breath.frequency.value = 180;
+    const breathGain = audio.createGain();
+    breathGain.gain.value = 0.35;
+    noise.connect(breath).connect(breathGain).connect(tremolo);
+
+    [chop, buzz, flutter, noise].forEach((node) => {
+      node.start(t);
+      node.stop(t + duration + 0.05);
+    });
   }
 
   const toggle = document.getElementById('sound-toggle');
@@ -161,7 +224,17 @@
 
   const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
+  const fartLines = ['Prrrout !', 'Oups…', 'C\'était pas moi !', 'Pardon, c\'est le renne', 'Trop de marrons glacés…', 'Le lutin s\'excuse'];
+  function fartGag(x, y) {
+    fart();
+    addGag('gag-puff', '💨', { left: x + 'px', top: y + 'px' });
+    addGag('gag-bubble', pick(fartLines), { left: x + 'px', top: y - 30 + 'px' });
+  }
+
+  // Le prout apparaît deux fois : il sort plus souvent que les autres.
   const gags = [
+    fartGag,
+    fartGag,
     (x, y) => addGag('gag-bubble', pick(bubbles), { left: x + 'px', top: y + 'px' }),
     () => addGag('gag-sleigh', '🦌🦌🛷🎅'),
     (x, y) => addGag('gag-splat', '', { left: x + 'px', top: y + 'px' }),
@@ -186,7 +259,7 @@
     if (now - lastGag < 2500 || Math.random() > GAG_CHANCE) return;
     lastGag = now;
     let index;
-    do { index = Math.floor(Math.random() * gags.length); } while (index === previousGag);
+    do { index = Math.floor(Math.random() * gags.length); } while (gags[index] === gags[previousGag]);
     previousGag = index;
     gags[index](e.clientX, e.clientY);
   });
@@ -194,5 +267,5 @@
   window.addEventListener('resize', resize);
   resize();
   requestAnimationFrame(frame);
-  window.festive = { burst, jingle };
+  window.festive = { burst, jingle, fart };
 })();

@@ -10,7 +10,7 @@ Ouvrir `index.html` dans un navigateur (aucune installation, aucun serveur, fonc
 2. Lancer le tirage.
 3. Passer le téléphone : chacun touche son prénom, confirme, ouvre son paquet cadeau pour découvrir son destinataire, puis le cache.
 
-De temps en temps, un clic déclenche une surprise (Père Noël en traîneau, boule de neige, renne…).
+De temps en temps, un clic déclenche une surprise (prout, Père Noël en traîneau, boule de neige, renne…).
 L'ouverture du paquet joue un petit jingle (bouton cloche en haut à droite pour couper le son).
 
 ## Tests
