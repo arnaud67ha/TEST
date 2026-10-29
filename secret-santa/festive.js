@@ -80,6 +80,59 @@
     }
   }
 
+  // ---------- Son ----------
+
+  const SOUND_KEY = 'secret-santa-sound';
+  let soundOn = true;
+  try { soundOn = localStorage.getItem(SOUND_KEY) !== 'off'; } catch (e) { /* ignore */ }
+  let audio = null;
+
+  function note(freq, start, duration, type, volume) {
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(volume, start + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    osc.connect(gain).connect(audio.destination);
+    osc.start(start);
+    osc.stop(start + duration + 0.05);
+  }
+
+  // Sleigh bells, then a rising C major arpeggio ending on a chord.
+  function jingle() {
+    if (!soundOn) return;
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === 'suspended') audio.resume();
+    } catch (e) { return; }
+    const t = audio.currentTime + 0.02;
+    for (let i = 0; i < 14; i++) {
+      const at = t + i * 0.035 + Math.random() * 0.02;
+      note(2400 + Math.random() * 2200, at, 0.18, 'sine', 0.05);
+    }
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => note(f, t + 0.25 + i * 0.1, 0.35, 'triangle', 0.18));
+    [523.25, 659.25, 783.99, 1046.5].forEach((f) => note(f, t + 0.75, 0.9, 'triangle', 0.09));
+    note(2093, t + 0.75, 0.6, 'sine', 0.05);
+  }
+
+  const toggle = document.getElementById('sound-toggle');
+  function renderToggle() {
+    if (!toggle) return;
+    toggle.setAttribute('aria-pressed', String(soundOn));
+    toggle.textContent = soundOn ? '🔔' : '🔕';
+    toggle.title = toggle.ariaLabel = soundOn ? 'Couper le son' : 'Activer le son';
+  }
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      soundOn = !soundOn;
+      try { localStorage.setItem(SOUND_KEY, soundOn ? 'on' : 'off'); } catch (e) { /* ignore */ }
+      renderToggle();
+    });
+    renderToggle();
+  }
+
   // ---------- Surprises au clic ----------
 
   const GAG_CHANCE = 0.25;
@@ -126,7 +179,7 @@
 
   // Never during the reveal, so nothing covers the drawn name.
   document.addEventListener('click', (e) => {
-    if (reduceMotion || !e.target.closest('button')) return;
+    if (reduceMotion || !e.target.closest('button') || e.target.closest('#sound-toggle')) return;
     const reveal = document.getElementById('screen-reveal');
     if (reveal && !reveal.hidden) return;
     const now = Date.now();
@@ -141,5 +194,5 @@
   window.addEventListener('resize', resize);
   resize();
   requestAnimationFrame(frame);
-  window.festive = { burst };
+  window.festive = { burst, jingle };
 })();

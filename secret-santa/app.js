@@ -191,7 +191,10 @@
     $('gift').disabled = true;
     $('gift-hint').hidden = true;
     $('reveal-result').hidden = false;
-    if (window.festive) window.festive.burst($('gift'));
+    if (window.festive) {
+      window.festive.burst($('gift'));
+      window.festive.jingle();
+    }
   });
 
   $('hide-button').addEventListener('click', () => {
