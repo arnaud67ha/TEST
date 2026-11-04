@@ -84,11 +84,11 @@
     <button class="primary" id="btnDir">📂 Choisir le dossier…</button>
     <button id="btnReload" disabled title="Relire le même dossier (Edge/Chrome)">↻ Recharger</button>
     <label class="btn">📄 Fichiers .log…<input type="file" id="inpFiles" multiple accept=".log,.txt" hidden></label>
-    <input type="file" id="inpDir" webkitdirectory multiple hidden>
+    <label class="btn" title="À utiliser si le bouton « Choisir le dossier » ne fait rien">📁 Dossier (mode compatible)…<input type="file" id="inpDir" webkitdirectory multiple hidden></label>
     <button id="btnCsv" disabled>⬇ Export CSV</button>
     <span id="status" class="muted"></span>
   </div>
-  <div id="drop">… ou glissez-déposez ici des fichiers .log ou un dossier</div>
+  <div id="drop">… ou glissez-déposez ici des fichiers .log ou un dossier<br><small>Les graphiques apparaissent ici une fois les logs chargés.</small></div>
 
   <section id="app" class="hidden">
     <div class="card">
@@ -112,7 +112,7 @@
 
     <div class="card">
       <h2>Tendance par fichier
-        <span class="muted" style="font-weight:400;font-size:12px">points = actualisations · trait épais = moyenne glissante (5) · pointillé = droite de tendance · rouge = seuil lent</span>
+        <span class="muted" style="font-weight:400;font-size:12px">courbe = durées réelles de chaque actualisation · point rouge = au-dessus du seuil lent · % = évolution sur la période</span>
         <label class="f" style="margin-left:auto;flex-direction:row;align-items:center;gap:6px">Trier par
           <select id="smSort"><option value="trend">tendance (hausse d'abord)</option><option value="avg">durée moyenne</option><option value="name">nom</option></select></label>
       </h2>
@@ -149,6 +149,7 @@
 
 <script>
 "use strict";
+window.addEventListener("error", e => { const el = document.getElementById("status"); if (el) el.textContent = "⚠ Erreur : " + e.message; });
 /* ---------------- Décodage (UTF-8, Windows-1252, et texte "DÃ©but" doublement encodé) ---------------- */
 const CP1252 = {0x20AC:0x80,0x201A:0x82,0x0192:0x83,0x201E:0x84,0x2026:0x85,0x2020:0x86,0x2021:0x87,0x02C6:0x88,0x2030:0x89,
   0x0160:0x8A,0x2039:0x8B,0x0152:0x8C,0x017D:0x8E,0x2018:0x91,0x2019:0x92,0x201C:0x93,0x201D:0x94,0x2022:0x95,0x2013:0x96,
@@ -331,7 +332,6 @@ function lineChart(pts, { avg, slow }) {
   const step = Math.max(1, Math.ceil(pts.length / 7));
   pts.forEach((p, i) => { if (i % step === 0 || i === pts.length - 1) s += `<text x="${X(i)}" y="${H - 10}" text-anchor="middle">${fmtShortDT(p.t)}</text>`; });
   s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(slow)}" y2="${Y(slow)}" stroke="var(--bad)" stroke-dasharray="4 4" opacity=".7"><title>Seuil lent : ${slow} s</title></line>`;
-  if (!isNaN(avg)) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(avg)}" y2="${Y(avg)}" stroke="var(--muted)" stroke-dasharray="2 4"><title>Moyenne : ${fmtDur(avg)}</title></line>`;
   s += `<polyline fill="none" stroke="var(--accent)" stroke-width="2" points="${pts.map((p, i) => `${X(i)},${Y(p.v)}`).join(" ")}"/>`;
   const r = pts.length > 150 ? 1.6 : 3.2;
   pts.forEach((p, i) => s += `<circle cx="${X(i)}" cy="${Y(p.v)}" r="${r}" fill="${p.v >= slow ? "var(--bad)" : "var(--accent)"}"><title>${fmtDT(p.t)} : ${fmtDur(p.v)}</title></circle>`);
@@ -369,9 +369,6 @@ function linReg(vals) {
   const slope = num / den, a = my - slope * mx;
   return { a, slope, start: a, end: a + slope * (n - 1), change: my ? slope * (n - 1) / my : 0 };
 }
-function movingAvg(vals, k = 5) {
-  return vals.map((_, i) => mean(vals.slice(Math.max(0, i - k + 1), i + 1)));
-}
 function miniChart(list, slow) {
   const vals = list.map(e => e.dur);
   const W = 320, H = 120, m = { l: 34, r: 6, t: 8, b: 18 };
@@ -384,10 +381,9 @@ function miniChart(list, slow) {
   for (const v of [0, vmax / 2, vmax]) s += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${m.l - 4}" y="${Y(v) + 4}" text-anchor="end" style="font-size:10px">${fmtAxis(v)}</text>`;
   if (slow <= vmax) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(slow)}" y2="${Y(slow)}" stroke="var(--bad)" stroke-dasharray="3 3" opacity=".6"/>`;
   s += `<text x="${m.l}" y="${H - 4}" style="font-size:10px">${fmtShortDT(list[0].ts)}</text><text x="${W - m.r}" y="${H - 4}" text-anchor="end" style="font-size:10px">${fmtShortDT(list[list.length - 1].ts)}</text>`;
-  const r = vals.length > 80 ? 1.2 : 2.2;
-  vals.forEach((v, i) => s += `<circle cx="${X(i)}" cy="${Y(v)}" r="${r}" fill="${v >= slow ? "var(--bad)" : "var(--accent)"}" opacity=".55"><title>${fmtDT(list[i].ts)} : ${fmtDur(v)}</title></circle>`);
-  if (vals.length > 2) s += `<polyline fill="none" stroke="var(--accent)" stroke-width="2.2" points="${movingAvg(vals).map((v, i) => `${X(i)},${Y(v)}`).join(" ")}"/>`;
-  if (reg) s += `<line x1="${X(0)}" x2="${X(vals.length - 1)}" y1="${Y(Math.max(0, reg.start))}" y2="${Y(Math.max(0, reg.end))}" stroke="${col}" stroke-width="2" stroke-dasharray="6 4"/>`;
+  const r = vals.length > 80 ? 1.6 : 2.6;
+  if (vals.length > 1) s += `<polyline fill="none" stroke="var(--accent)" stroke-width="1.6" points="${vals.map((v, i) => `${X(i)},${Y(v)}`).join(" ")}"/>`;
+  vals.forEach((v, i) => s += `<circle cx="${X(i)}" cy="${Y(v)}" r="${r}" fill="${v >= slow ? "var(--bad)" : "var(--accent)"}"><title>${fmtDT(list[i].ts)} : ${fmtDur(v)}</title></circle>`);
   return { svg: `<svg viewBox="0 0 ${W} ${H}">${s}</svg>`, reg, col };
 }
 function renderSmallMultiples(reports, groups, F) {
@@ -478,7 +474,7 @@ function render() {
   const g = groups.get(selectedKey) || [];
   const selStats = reports.find(r => r.key === selectedKey);
   $("#chartReport").innerHTML = lineChart(g.map(e => ({ t: e.ts, v: e.dur })), { avg: selStats ? selStats.avg : NaN, slow: F.slow }) +
-    (selStats ? `<p class="muted" style="margin-top:6px">${selStats.n} actualisations · moyenne ${fmtDur(selStats.avg)} · médiane ${fmtDur(selStats.med)} · max ${fmtDur(selStats.max)} · ligne rouge = seuil lent</p>` : "");
+    (selStats ? `<p class="muted" style="margin-top:6px">${selStats.n} actualisations · moyenne ${fmtDur(selStats.avg)} · médiane ${fmtDur(selStats.med)} · max ${fmtDur(selStats.max)} · courbe = valeurs réelles · ligne rouge = seuil lent</p>` : "");
 
   // Cycles
   const runDur = r => (r.end - r.start) / 1000;
@@ -534,10 +530,10 @@ function exportCsv() {
 $("#btnDir").onclick = async () => {
   if (window.showDirectoryPicker) {
     try { dirHandle = await window.showDirectoryPicker({ id: "logs", mode: "read" }); }
-    catch (e) { if (e.name !== "AbortError") { $("#inpDir").click(); } return; }
+    catch (e) { if (e.name !== "AbortError") setStatus("⚠ Accès au dossier refusé par le navigateur (" + e.message + "). Utilisez « 📁 Dossier (mode compatible) »."); return; }
     $("#btnReload").disabled = false;
     loadFromHandle();
-  } else $("#inpDir").click();
+  } else setStatus("Ce navigateur ne permet pas ce bouton : utilisez « 📁 Dossier (mode compatible) ».");
 };
 $("#btnReload").onclick = () => dirHandle && loadFromHandle();
 $("#inpDir").onchange = e => loadFiles([...e.target.files].filter(f => /\.log$/i.test(f.name)).map(f => ({ file: f, path: f.webkitRelativePath || f.name })));
