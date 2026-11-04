@@ -66,6 +66,9 @@
   #drop.over { border-color: var(--accent); color: var(--accent); }
   .hidden { display: none !important; }
   .sm { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+  .smg { margin-top: 14px; } .smg:first-child { margin-top: 0; }
+  .smg h3 { font-size: 14px; margin: 0 0 8px; padding: 6px 10px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 4px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .smg h3 span { font-weight: 400; color: var(--muted); font-size: 12px; }
   .smc { border: 1px solid var(--line); border-radius: 8px; padding: 10px; cursor: pointer; }
   .smc:hover, .smc.sel { border-color: var(--accent); background: var(--accent-soft); }
   .smc .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -93,6 +96,7 @@
   <section id="app" class="hidden">
     <div class="card">
       <div class="row">
+        <label class="f">Dossier<select id="fFolder"></select></label>
         <label class="f">Tâche<select id="fTask"></select></label>
         <label class="f">Du<input type="date" id="fFrom"></label>
         <label class="f">Au<input type="date" id="fTo"></label>
@@ -114,9 +118,10 @@
       <h2>Tendance par fichier
         <span class="muted" style="font-weight:400;font-size:12px">courbe = durées réelles de chaque actualisation · point rouge = au-dessus du seuil lent · % = évolution sur la période</span>
         <label class="f" style="margin-left:auto;flex-direction:row;align-items:center;gap:6px">Trier par
+          <select id="smGroup"><option value="folder">Séparer par dossier</option><option value="">Tout ensemble</option></select>
           <select id="smSort"><option value="trend">tendance (hausse d'abord)</option><option value="avg">durée moyenne</option><option value="name">nom</option></select></label>
       </h2>
-      <div id="smallMultiples" class="sm"></div>
+      <div id="smallMultiples"></div>
     </div>
 
     <div class="card">
@@ -170,7 +175,7 @@ function decodeBuffer(buf) {
 
 /* ---------------- Analyse des lignes ---------------- */
 const RE_LINE  = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(?:[.,]\d+)?\s+\[([^\]]+)\]\s+(\w+)\s+(.*)$/;
-const RE_START = /^D[ée]but\s*:\s*(\d+)\s+classeur.*?(?:dans\s+(.+))?$/i;
+const RE_START = /^D\S{1,3}but\s*:\s*(\d+)\s+classeur.*?(?:dans\s+(.+))?$/i;
 const RE_DONE  = /^(.+?\.\w{3,4})\s+actualis\S*.*?\((\d+(?:[.,]\d+)?)\s*s\)/i;
 const RE_END   = /^Fin\s*:\s*(\d+)\s+r[ée]ussi\S*\s*,\s*(\d+)\s+en/i;
 const RE_ISSUE = /(chec|erreur|error|impossible|timeout|expir|exception|ignor)/i;
@@ -180,6 +185,11 @@ let dirHandle = null;
 
 function toDate(d, t) { const [Y, M, D] = d.split("-").map(Number); const [h, m, s] = t.split(":").map(Number); return new Date(Y, M - 1, D, h, m, s); }
 
+function folderOf(path, run) {
+  if (run && run.folder) return run.folder.replace(/[\\/]+$/, "").split(/[\\/]/).pop();
+  const parts = path.split("/"); parts.pop();
+  return parts.length ? parts[parts.length - 1] : "(racine)";
+}
 function parseFile(text, path) {
   const out = { entries: [], runs: [], anomalies: [] };
   const open = new Map(); // tâche -> cycle en cours
@@ -202,7 +212,8 @@ function parseFile(text, path) {
       const run = { path, task, folder: (r[2] || "").trim(), start: ts, end: null, expected: +r[1], ok: null, ko: null, items: [], status: "en cours" };
       open.set(task, run); out.runs.push(run);
     } else if ((r = RE_DONE.exec(msg))) {
-      const e = { path, task, report: r[1].trim(), dur: parseFloat(r[2].replace(",", ".")), ts, run: open.get(task) || null };
+      const run = open.get(task) || null;
+      const e = { path, task, folder: folderOf(path, run), report: r[1].trim(), dur: parseFloat(r[2].replace(",", ".")), ts, run };
       out.entries.push(e);
       if (e.run) e.run.items.push(e);
     } else if ((r = RE_END.exec(msg))) {
@@ -274,6 +285,8 @@ function niceMax(v) { if (!(v > 0)) return 1; const p = 10 ** Math.floor(Math.lo
 function initFilters() {
   $("#app").classList.remove("hidden");
   $("#btnCsv").disabled = false;
+  const folders = [...new Set(DATA.entries.map(e => e.folder))].sort();
+  $("#fFolder").innerHTML = `<option value="">Tous (${folders.length})</option>` + folders.map(t => `<option>${esc(t)}</option>`).join("");
   const tasks = [...new Set([...DATA.runs.map(r => r.task), ...DATA.entries.map(e => e.task)])].sort();
   $("#fTask").innerHTML = `<option value="">Toutes (${tasks.length})</option>` + tasks.map(t => `<option>${esc(t)}</option>`).join("");
   const dates = DATA.entries.map(e => e.ts).concat(DATA.runs.map(r => r.start));
@@ -284,7 +297,7 @@ function initFilters() {
   }
 }
 function filters() {
-  return { task: $("#fTask").value, from: $("#fFrom").value, to: $("#fTo").value, text: $("#fText").value.trim().toLowerCase(),
+  return { folder: $("#fFolder").value, task: $("#fTask").value, from: $("#fFrom").value, to: $("#fTo").value, text: $("#fText").value.trim().toLowerCase(),
            h1: +$("#fH1").value || 0, h2: $("#fH2").value === "" ? 23 : +$("#fH2").value, slow: +$("#fSlow").value || 120 };
 }
 function keep(task, ts, F) {
@@ -392,7 +405,7 @@ function renderSmallMultiples(reports, groups, F) {
   items.sort((a, b) => mode === "name" ? a.r.key.localeCompare(b.r.key)
     : mode === "avg" ? b.r.avg - a.r.avg : (b.reg ? b.reg.change : -1e9) - (a.reg ? a.reg.change : -1e9));
   const el = $("#smallMultiples");
-  el.innerHTML = items.length ? items.map(it => {
+  const card = it => {
     const ch = it.reg ? Math.round(it.reg.change * 100) : null;
     const arrow = ch == null ? "" : ch > 10 ? "▲" : ch < -10 ? "▼" : "▶";
     return `<div class="smc ${it.r.key === selectedKey ? "sel" : ""}" data-k="${esc(it.r.key)}">
@@ -401,6 +414,14 @@ function renderSmallMultiples(reports, groups, F) {
       ${it.svg}
       <div class="s"><span>${esc(it.r.task)}</span><span>moy ${fmtDur(it.r.avg)} · dern. ${fmtDur(it.r.last)} · ${it.r.n} pts</span></div>
     </div>`;
+  };
+  const byFolder = $("#smGroup").value === "folder";
+  const sections = new Map();
+  for (const it of items) { const k = byFolder ? it.r.folder : ""; if (!sections.has(k)) sections.set(k, []); sections.get(k).push(it); }
+  el.innerHTML = items.length ? [...sections].sort((a, b) => a[0].localeCompare(b[0])).map(([folder, list]) => {
+    const tot = sum(list.map(it => it.r.total)), up = list.filter(it => it.reg && it.reg.change > .1).length;
+    return `<div class="smg">` + (byFolder ? `<h3>📁 ${esc(folder)} <span>${list.length} fichier(s) · temps cumulé ${fmtDur(tot)}${up ? ` · <b style="color:var(--bad)">${up} en hausse</b>` : ""}</span></h3>` : "") +
+      `<div class="sm">${list.map(card).join("")}</div></div>`;
   }).join("") : `<p class="muted">Aucune donnée.</p>`;
   el.querySelectorAll(".smc").forEach(c => c.onclick = () => {
     selectedKey = c.dataset.k; render();
@@ -414,8 +435,8 @@ const keyOf = e => e.task + " › " + e.report;
 
 function render() {
   const F = filters();
-  const entries = DATA.entries.filter(e => keep(e.task, e.ts, F) && (!F.text || e.report.toLowerCase().includes(F.text)));
-  const runs = DATA.runs.filter(r => keep(r.task, r.start, F));
+  const entries = DATA.entries.filter(e => keep(e.task, e.ts, F) && (!F.folder || e.folder === F.folder) && (!F.text || e.report.toLowerCase().includes(F.text)));
+  const runs = DATA.runs.filter(r => keep(r.task, r.start, F) && (!F.folder || r.items.some(i => i.folder === F.folder) || folderOf(r.path, r) === F.folder));
   const anomalies = DATA.anomalies.filter(a => !a.ts || keep(a.task, a.ts, F));
 
   // Statistiques par rapport
@@ -424,7 +445,8 @@ function render() {
   const total = sum(entries.map(e => e.dur)) || 1;
   const reports = [...groups].map(([key, list]) => {
     const d = list.map(e => e.dur), last = list[list.length - 1], recent = d.slice(-5), avg = mean(d);
-    return { key, task: list[0].task, report: list[0].report, n: d.length, avg, med: quantile(d, .5), p90: quantile(d, .9),
+    const fc = {}; list.forEach(e => fc[e.folder] = (fc[e.folder] || 0) + 1);
+    return { key, folder: Object.keys(fc).reduce((x, y) => fc[y] > fc[x] ? y : x), task: list[0].task, report: list[0].report, n: d.length, avg, med: quantile(d, .5), p90: quantile(d, .9),
              min: Math.min(...d), max: Math.max(...d), last: last.dur, lastTs: last.ts, total: sum(d), share: sum(d) / total,
              trend: d.length >= 6 ? (mean(recent) - avg) / avg : NaN, nSlow: d.filter(x => x >= F.slow).length, spark: d.slice(-40) };
   });
@@ -449,6 +471,7 @@ function render() {
   if (!selectedKey || !groups.has(selectedKey)) selectedKey = reports.length ? reports.reduce((a, b) => b.avg > a.avg ? b : a).key : null;
   const pct = x => isNaN(x) ? "–" : (x > 0 ? "+" : "") + Math.round(x * 100) + " %";
   table("tReports", [
+    { key: "folder", label: "Dossier" },
     { key: "task", label: "Tâche" },
     { key: "report", label: "Rapport", fmt: r => `<b>${esc(r.report)}</b>` },
     { key: "n", label: "Nb", n: 1 },
@@ -540,9 +563,9 @@ $("#inpDir").onchange = e => loadFiles([...e.target.files].filter(f => /\.log$/i
 $("#inpFiles").onchange = e => loadFiles([...e.target.files].map(f => ({ file: f, path: f.name })));
 $("#btnCsv").onclick = exportCsv;
 $("#selReport").onchange = e => { selectedKey = e.target.value; render(); };
-["#smSort", "#fTask", "#fFrom", "#fTo", "#fSlow", "#fH1", "#fH2"].forEach(s => $(s).onchange = render);
+["#smSort", "#smGroup", "#fFolder", "#fTask", "#fFrom", "#fTo", "#fSlow", "#fH1", "#fH2"].forEach(s => $(s).onchange = render);
 $("#fText").oninput = render;
-$("#btnResetF").onclick = () => { $("#fTask").value = ""; $("#fText").value = ""; $("#fH1").value = 0; $("#fH2").value = 23; initFilters(); render(); };
+$("#btnResetF").onclick = () => { $("#fFolder").value = ""; $("#fTask").value = ""; $("#fText").value = ""; $("#fH1").value = 0; $("#fH2").value = 23; initFilters(); render(); };
 
 // Glisser-déposer (fichiers ou dossiers)
 const drop = $("#drop");
