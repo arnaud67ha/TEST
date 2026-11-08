@@ -1,0 +1,580 @@
+<title>Mot de Trop</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Jeu d'ambiance : tout le monde a le même mot, sauf l'imposteur qui en a un très proche.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;600;800&display=swap">
+<style>
+/* Layout: one centred column (max 30rem), one screen at a time, like cards dealt on a table. */
+:root {
+  --bg: #efeaf7;
+  --surface: #ffffff;
+  --surface-2: #e2dbf0;
+  --fg: #1e1838;
+  --muted: #6a6189;
+  --accent: #e2405f;      /* imposteur / actions */
+  --accent-fg: #ffffff;
+  --mint: #138f78;        /* civils */
+  --line: #cfc6e3;
+  --card-back: #2b2350;
+  --card-back-2: #3b3170;
+  --shadow: 0 0.6rem 1.6rem rgb(43 35 80 / 0.14);
+  --font-display: "Bagel Fat One", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14112a; --surface: #211c40; --surface-2: #2d2654; --fg: #eeeaf9; --muted: #a59dc6;
+    --accent: #ff6684; --accent-fg: #1a0710; --mint: #4fd1b5; --line: #3a3266;
+    --card-back: #382e72; --card-back-2: #4a3e92; --shadow: 0 0.6rem 1.6rem rgb(0 0 0 / 0.4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14112a; --surface: #211c40; --surface-2: #2d2654; --fg: #eeeaf9; --muted: #a59dc6;
+  --accent: #ff6684; --accent-fg: #1a0710; --mint: #4fd1b5; --line: #3a3266;
+  --card-back: #382e72; --card-back-2: #4a3e92; --shadow: 0 0.6rem 1.6rem rgb(0 0 0 / 0.4);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 1rem; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 1.25rem 2.5rem;
+  -webkit-tap-highlight-color: transparent;
+}
+main { max-width: 30rem; margin: 0 auto; display: flex; flex-direction: column; gap: 1.25rem; }
+h1, h2 { font-family: var(--font-display); font-weight: 400; margin: 0; text-wrap: balance; line-height: 1.05; }
+h1 { font-size: clamp(2.4rem, 11vw, 3.4rem); letter-spacing: -0.01em; }
+h1 .strike { color: var(--accent); }
+h2 { font-size: 1.9rem; }
+p { margin: 0; }
+.lede { color: var(--muted); max-width: 34ch; }
+.label { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.stack { display: flex; flex-direction: column; gap: 0.75rem; }
+.row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.panel { background: var(--surface); border-radius: 1.1rem; padding: 1rem; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 0.85rem; }
+
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  min-height: 3.25rem; padding: 0 1.25rem; border-radius: 999px;
+  font-weight: 800; font-size: 1.05rem;
+  background: var(--accent); color: var(--accent-fg);
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.btn:active { transform: scale(0.97); }
+.btn[disabled] { opacity: 0.35; cursor: not-allowed; }
+.btn.ghost { background: var(--surface-2); color: var(--fg); }
+.btn.block { width: 100%; }
+.btn.small { min-height: 2.5rem; font-size: 0.95rem; padding: 0 1rem; }
+
+/* Setup */
+.player-list { display: flex; flex-direction: column; gap: 0.4rem; list-style: none; margin: 0; padding: 0; }
+.player-list li { display: flex; align-items: center; gap: 0.6rem; background: var(--surface-2); border-radius: 0.8rem; padding: 0.35rem 0.35rem 0.35rem 0.85rem; }
+.player-list .name { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.player-list .pts { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 0.9rem; }
+.icon-btn { width: 2.25rem; height: 2.25rem; border-radius: 0.6rem; display: grid; place-items: center; color: var(--muted); font-size: 1.25rem; line-height: 1; }
+.icon-btn:hover { background: var(--surface); color: var(--accent); }
+.add-row { display: flex; gap: 0.5rem; }
+.add-row input {
+  flex: 1; min-width: 0; font: inherit; color: var(--fg); background: var(--surface-2);
+  border: 2px solid transparent; border-radius: 0.8rem; padding: 0.7rem 0.85rem;
+}
+.add-row input:focus { border-color: var(--accent); outline: none; }
+.stepper { display: flex; align-items: center; gap: 0.75rem; }
+.stepper output { font-family: var(--font-display); font-size: 1.8rem; min-width: 1.5ch; text-align: center; font-variant-numeric: tabular-nums; }
+.stepper .icon-btn { background: var(--surface-2); color: var(--fg); width: 2.75rem; height: 2.75rem; border-radius: 999px; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.chip { border-radius: 999px; padding: 0.4rem 0.8rem; font-weight: 600; font-size: 0.9rem; background: var(--surface-2); color: var(--muted); border: 2px solid transparent; }
+.chip[aria-pressed="true"] { background: var(--surface); color: var(--fg); border-color: var(--mint); }
+.hint { font-size: 0.875rem; color: var(--muted); }
+.warn { color: var(--accent); font-weight: 600; font-size: 0.9rem; }
+
+/* Secret card */
+.deal { display: flex; flex-direction: column; align-items: center; gap: 1.1rem; text-align: center; padding-top: 0.5rem; }
+.deal .who { font-family: var(--font-display); font-size: clamp(2rem, 10vw, 2.8rem); overflow-wrap: anywhere; }
+.card {
+  position: relative; width: min(100%, 19rem); aspect-ratio: 5 / 7; max-width: 100%;
+  border-radius: 1.4rem; user-select: none; -webkit-user-select: none; touch-action: none;
+  perspective: 900px;
+}
+.card .face {
+  position: absolute; inset: 0; border-radius: inherit; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 0.75rem; padding: 1.25rem;
+  backface-visibility: hidden; transition: transform 0.35s cubic-bezier(.3,.7,.3,1);
+  box-shadow: var(--shadow);
+}
+.card .back {
+  background:
+    repeating-linear-gradient(45deg, var(--card-back) 0 14px, var(--card-back-2) 14px 28px);
+  color: #f2eefc;
+}
+.card .back .seal {
+  width: 6rem; height: 6rem; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent); color: var(--accent-fg); font-family: var(--font-display); font-size: 3rem;
+  box-shadow: 0 0 0 6px rgb(255 255 255 / 0.15);
+}
+.card .back .how { font-weight: 800; letter-spacing: 0.04em; background: rgb(0 0 0 / 0.35); padding: 0.35rem 0.8rem; border-radius: 999px; font-size: 0.95rem; }
+.card .front { background: var(--surface); transform: rotateY(180deg); border: 3px solid var(--line); }
+.card .front .word { font-family: var(--font-display); font-size: clamp(2rem, 11vw, 2.9rem); line-height: 1.05; overflow-wrap: anywhere; color: var(--fg); }
+.card.open .back { transform: rotateY(-180deg); }
+.card.open .front { transform: rotateY(0deg); }
+
+/* Table */
+.order { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; counter-reset: turn; }
+.order li { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.85rem; border-radius: 0.8rem; background: var(--surface-2); font-weight: 600; }
+.order li::before { counter-increment: turn; content: counter(turn); font-family: var(--font-display); color: var(--accent); min-width: 1.4ch; font-variant-numeric: tabular-nums; }
+.order li.out { opacity: 0.45; text-decoration: line-through; }
+.order li.out::before { content: "✕"; color: var(--muted); }
+.order .first { margin-left: auto; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mint); }
+.rules { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.35rem; color: var(--muted); font-size: 0.95rem; }
+.rules b { color: var(--fg); }
+
+.vote-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 0.5rem; }
+.vote-grid button {
+  min-height: 3.5rem; border-radius: 0.9rem; background: var(--surface-2); font-weight: 700; padding: 0.5rem 0.75rem;
+  border: 3px solid transparent; overflow-wrap: anywhere;
+}
+.vote-grid button[aria-pressed="true"] { border-color: var(--accent); background: var(--surface); }
+
+/* Reveal */
+.verdict { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding-block: 1rem; }
+.verdict .badge { font-family: var(--font-display); font-size: 1.4rem; padding: 0.35rem 1.1rem; border-radius: 999px; }
+.badge.imp { background: var(--accent); color: var(--accent-fg); }
+.badge.civ { background: var(--mint); color: var(--bg); }
+.words { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+.words .w { border-radius: 1rem; padding: 0.9rem; background: var(--surface-2); display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+.words .w strong { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; line-height: 1.1; overflow-wrap: anywhere; }
+.words .w.civ { box-shadow: inset 0 0 0 3px var(--mint); }
+.words .w.imp { box-shadow: inset 0 0 0 3px var(--accent); }
+.tag { font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px; }
+.tag.imp { background: var(--accent); color: var(--accent-fg); }
+.tag.civ { background: var(--mint); color: var(--bg); }
+.gain { color: var(--mint); font-weight: 800; font-variant-numeric: tabular-nums; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.topbar .label { white-space: nowrap; }
+.confirm { display: flex; flex-direction: column; gap: 0.6rem; background: var(--surface); border: 2px solid var(--accent); border-radius: 1rem; padding: 0.9rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card .face, .btn { transition: none; }
+}
+</style>
+
+<main id="app" aria-live="polite"></main>
+
+<script>
+(() => {
+  // ---------- Paires de mots (civils / imposteur, l'ordre est tiré au hasard) ----------
+  const WORDS = {
+    "Cuisine": [
+      "Pizza|Tarte flambée","Croissant|Pain au chocolat","Crêpe|Gaufre","Fromage|Beurre","Pâtes|Riz",
+      "Sushi|Maki","Burger|Sandwich","Chocolat|Caramel","Café|Thé","Soupe|Bouillon","Frites|Chips",
+      "Raclette|Fondue","Glace|Sorbet","Ketchup|Mayonnaise","Miel|Confiture","Omelette|Œuf au plat",
+      "Baguette|Brioche","Yaourt|Crème dessert","Sel|Poivre","Couscous|Tajine","Macaron|Meringue"
+    ],
+    "Fruits & légumes": [
+      "Pomme|Poire","Citron|Orange","Fraise|Framboise","Banane|Mangue","Cerise|Prune","Tomate|Poivron",
+      "Carotte|Navet","Pastèque|Melon","Courgette|Concombre","Oignon|Ail","Raisin|Myrtille","Pêche|Abricot"
+    ],
+    "Animaux": [
+      "Chat|Tigre","Chien|Loup","Lion|Panthère","Requin|Dauphin","Abeille|Guêpe","Cheval|Âne",
+      "Grenouille|Crapaud","Hibou|Chouette","Souris|Rat","Pingouin|Manchot","Crocodile|Alligator",
+      "Lapin|Lièvre","Papillon|Libellule","Vache|Taureau","Escargot|Limace","Corbeau|Pie","Phoque|Otarie"
+    ],
+    "Lieux": [
+      "Plage|Piscine","Montagne|Colline","Hôpital|Clinique","École|Collège","Cinéma|Théâtre",
+      "Restaurant|Cantine","Bibliothèque|Librairie","Supermarché|Épicerie","Forêt|Jungle","Église|Cathédrale",
+      "Aéroport|Gare","Château|Palais","Musée|Galerie","Camping|Hôtel","Boulangerie|Pâtisserie","Lac|Étang",
+      "Désert|Savane","Prison|Commissariat"
+    ],
+    "Objets": [
+      "Stylo|Crayon","Fourchette|Cuillère","Lit|Canapé","Chaise|Tabouret","Parapluie|Imperméable",
+      "Téléphone|Tablette","Montre|Réveil","Lunettes|Lentilles","Clé|Cadenas","Bougie|Lampe",
+      "Valise|Sac à dos","Miroir|Fenêtre","Ciseaux|Couteau","Oreiller|Couverture","Télécommande|Manette",
+      "Brosse à dents|Peigne","Casquette|Bonnet","Écharpe|Cravate","Gants|Moufles","Bague|Bracelet"
+    ],
+    "Métiers": [
+      "Médecin|Infirmier","Pompier|Policier","Boulanger|Pâtissier","Professeur|Directeur","Pilote|Hôtesse de l'air",
+      "Cuisinier|Serveur","Dentiste|Opticien","Avocat|Juge","Coiffeur|Barbier","Plombier|Électricien",
+      "Facteur|Livreur","Journaliste|Écrivain","Vétérinaire|Éleveur","Astronaute|Pilote de chasse"
+    ],
+    "Sports & loisirs": [
+      "Football|Rugby","Tennis|Badminton","Ski|Snowboard","Natation|Plongée","Basket|Handball",
+      "Vélo|Trottinette","Boxe|Judo","Golf|Mini-golf","Échecs|Dames","Danse|Gymnastique",
+      "Pétanque|Bowling","Surf|Planche à voile","Yoga|Méditation","Karaoké|Concert","Puzzle|Lego"
+    ],
+    "Transports": [
+      "Voiture|Taxi","Avion|Hélicoptère","Train|Métro","Bateau|Sous-marin","Bus|Tramway",
+      "Moto|Scooter","Fusée|Satellite","Camion|Tracteur","Ambulance|Camion de pompiers","Canoë|Kayak"
+    ],
+    "Fêtes & culture": [
+      "Noël|Nouvel An","Anniversaire|Mariage","Halloween|Carnaval","Père Noël|Lutin","Vampire|Zombie",
+      "Sorcière|Fée","Pirate|Viking","Chevalier|Mousquetaire","Super-héros|Robot","Licorne|Dragon",
+      "Fantôme|Monstre","Magicien|Clown","Princesse|Reine","Cow-boy|Shérif"
+    ],
+    "Nature & météo": [
+      "Pluie|Neige","Soleil|Lune","Orage|Tempête","Volcan|Geyser","Arc-en-ciel|Aurore boréale",
+      "Rivière|Cascade","Fleur|Arbre","Rose|Tulipe","Étoile|Planète","Brouillard|Nuage","Sable|Galet"
+    ]
+  };
+  const CATS = Object.keys(WORDS);
+
+  // ---------- Stockage local (confort : se souvenir des joueurs) ----------
+  const KEY = "mot-de-trop-v1";
+  function load() { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch { return null; } }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify({ players: S.players, impostors: S.impostors, cats: S.cats, used: S.used })); } catch {}
+  }
+
+  const saved = load() || {};
+  const S = {
+    players: saved.players || [
+      { id: 1, name: "Léa", score: 0 }, { id: 2, name: "Hugo", score: 0 },
+      { id: 3, name: "Inès", score: 0 }, { id: 4, name: "Tom", score: 0 }
+    ],
+    impostors: saved.impostors || 1,
+    cats: saved.cats && saved.cats.length ? saved.cats : CATS.slice(),
+    used: saved.used || [],
+    screen: "setup",
+    game: null,
+    ui: {}
+  };
+  let nextId = Math.max(0, ...S.players.map(p => p.id)) + 1;
+
+  // ---------- Utilitaires ----------
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const byId = id => S.players.find(p => p.id === id);
+  const maxImpostors = n => Math.max(1, Math.floor((n - 1) / 2));
+
+  function pickPair() {
+    const pool = [];
+    S.cats.forEach(c => WORDS[c].forEach(p => pool.push(p)));
+    let fresh = pool.filter(p => !S.used.includes(p));
+    if (!fresh.length) { S.used = []; fresh = pool; }
+    const p = pick(fresh);
+    S.used.push(p);
+    const [a, b] = shuffle(p.split("|"));
+    return { civ: a, imp: b, cat: CATS.find(c => WORDS[c].includes(p)) };
+  }
+
+  // ---------- Déroulé d'une partie ----------
+  function startGame() {
+    const ids = shuffle(S.players.map(p => p.id));
+    const imps = new Set(ids.slice(0, S.impostors));
+    const roles = {};
+    S.players.forEach(p => roles[p.id] = imps.has(p.id) ? "imp" : "civ");
+    S.game = {
+      pair: pickPair(), roles,
+      alive: S.players.map(p => p.id),
+      dealOrder: shuffle(S.players.map(p => p.id)),
+      dealIndex: 0, round: 1, order: [], log: [], winner: null
+    };
+    newRoundOrder();
+    S.ui = { seen: false };
+    save();
+    go("deal");
+  }
+  function newRoundOrder() {
+    const g = S.game;
+    // L'ordre de parole tourne autour de la table à partir d'un joueur vivant au hasard
+    const table = S.players.map(p => p.id).filter(id => g.alive.includes(id));
+    const start = Math.floor(Math.random() * table.length);
+    g.order = table.slice(start).concat(table.slice(0, start));
+  }
+  function wordOf(id) { const g = S.game; return g.roles[id] === "imp" ? g.pair.imp : g.pair.civ; }
+  function eliminate(id) {
+    const g = S.game;
+    g.alive = g.alive.filter(x => x !== id);
+    g.log.push({ id, round: g.round, role: g.roles[id] });
+    const impLeft = g.alive.filter(x => g.roles[x] === "imp").length;
+    const civLeft = g.alive.length - impLeft;
+    if (impLeft === 0) g.winner = "civ";
+    else if (impLeft >= civLeft) g.winner = "imp";
+    if (g.winner) {
+      g.gains = {};
+      S.players.forEach(p => {
+        let pts = 0;
+        if (g.winner === "civ" && g.roles[p.id] === "civ") pts = 2;
+        if (g.winner === "imp" && g.roles[p.id] === "imp") pts = g.alive.includes(p.id) ? 6 : 3;
+        g.gains[p.id] = pts; p.score += pts;
+      });
+      save();
+    }
+    S.ui = { lastOut: id };
+    go("verdict");
+  }
+
+  // ---------- Rendu ----------
+  const app = $("#app");
+  function go(screen) { S.screen = screen; render(); window.scrollTo(0, 0); }
+
+  function render() {
+    const fn = { setup: viewSetup, deal: viewDeal, table: viewTable, peek: viewPeek, vote: viewVote, verdict: viewVerdict, end: viewEnd }[S.screen];
+    app.innerHTML = fn();
+    bind[S.screen] && bind[S.screen]();
+  }
+
+  function viewSetup() {
+    const n = S.players.length, max = maxImpostors(n);
+    if (S.impostors > max) S.impostors = max;
+    const enough = n >= 3;
+    const hasCats = S.cats.length > 0;
+    return `
+      <header class="stack">
+        <h1>Mot de <span class="strike">trop</span></h1>
+        <p class="lede">Tout le monde reçoit le même mot. Sauf l'imposteur, qui en reçoit un très proche, sans savoir qu'il est l'imposteur.</p>
+      </header>
+
+      <section class="panel" aria-labelledby="pl">
+        <div class="topbar"><span class="label" id="pl">Joueurs · ${n}</span>
+          ${S.players.some(p => p.score) ? `<button class="btn ghost small" id="reset-scores">Remettre les points à 0</button>` : ""}
+        </div>
+        <ul class="player-list">
+          ${S.players.map(p => `
+            <li><span class="name">${esc(p.name)}</span><span class="pts">${p.score} pt${p.score > 1 ? "s" : ""}</span>
+              <button class="icon-btn" data-del="${p.id}" aria-label="Retirer ${esc(p.name)}">×</button></li>`).join("")}
+        </ul>
+        <form class="add-row" id="add-form" autocomplete="off">
+          <input id="new-name" maxlength="20" placeholder="Prénom du joueur" aria-label="Prénom du joueur">
+          <button class="btn small" type="submit">Ajouter</button>
+        </form>
+        ${!enough ? `<p class="warn">Il faut au moins 3 joueurs.</p>` : `<p class="hint">Entrez les joueurs dans l'ordre où vous êtes assis : c'est l'ordre de parole.</p>`}
+      </section>
+
+      <section class="panel" aria-labelledby="ni">
+        <span class="label" id="ni">Imposteurs</span>
+        <div class="stepper">
+          <button class="icon-btn" id="imp-minus" aria-label="Un imposteur de moins" ${S.impostors <= 1 ? "disabled" : ""}>−</button>
+          <output id="imp-count">${S.impostors}</output>
+          <button class="icon-btn" id="imp-plus" aria-label="Un imposteur de plus" ${S.impostors >= max ? "disabled" : ""}>+</button>
+          <span class="hint">max ${max} pour ${n} joueur${n > 1 ? "s" : ""}</span>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="th">
+        <div class="topbar"><span class="label" id="th">Thèmes</span>
+          <button class="btn ghost small" id="all-cats">${S.cats.length === CATS.length ? "Aucun" : "Tous"}</button>
+        </div>
+        <div class="chips">
+          ${CATS.map(c => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${S.cats.includes(c)}">${esc(c)}</button>`).join("")}
+        </div>
+        ${!hasCats ? `<p class="warn">Choisissez au moins un thème.</p>` : ""}
+      </section>
+
+      <button class="btn block" id="start" ${enough && hasCats ? "" : "disabled"}>Distribuer les mots</button>
+
+      <details class="panel">
+        <summary class="label" style="cursor:pointer">Règles</summary>
+        <ol class="rules">
+          <li>Chacun regarde son mot en secret, puis passe le téléphone.</li>
+          <li>Chacun son tour, dites <b>un seul mot</b> qui évoque le vôtre. Trop précis, l'imposteur devine. Trop vague, on vous soupçonne.</li>
+          <li>Après chaque tour, débattez puis <b>votez</b> pour éliminer quelqu'un. Son rôle est révélé.</li>
+          <li>Les civils gagnent s'ils éliminent tous les imposteurs. Les imposteurs gagnent s'ils sont aussi nombreux que les civils.</li>
+          <li>Points : civils gagnants +2 chacun. Imposteur gagnant +6 s'il est encore en jeu, +3 sinon.</li>
+        </ol>
+      </details>`;
+  }
+
+  function viewDeal() {
+    const g = S.game, id = g.dealOrder[g.dealIndex], p = byId(id);
+    const last = g.dealIndex === g.dealOrder.length - 1;
+    return `
+      <div class="topbar"><span class="label">Distribution · ${g.dealIndex + 1}/${g.dealOrder.length}</span>
+        <button class="btn ghost small" id="quit">Quitter</button></div>
+      <section class="deal">
+        <p class="label">Passe le téléphone à</p>
+        <p class="who">${esc(p.name)}</p>
+        ${cardHTML(wordOf(id))}
+        <p class="hint">Les autres ne regardent pas l'écran.</p>
+        <button class="btn block" id="next" ${S.ui.seen ? "" : "disabled"}>${last ? "Tout le monde a vu : on joue" : "J'ai vu mon mot, au suivant"}</button>
+      </section>`;
+  }
+  function cardHTML(word) {
+    return `
+      <div class="card" id="card" role="button" tabindex="0" aria-label="Maintenir appuyé pour voir le mot">
+        <div class="face back"><div class="seal">?</div><span class="how">Maintiens appuyé</span></div>
+        <div class="face front"><span class="label">Ton mot</span><span class="word">${esc(word)}</span></div>
+      </div>`;
+  }
+
+  function viewTable() {
+    const g = S.game;
+    return `
+      <div class="topbar"><span class="label">Tour ${g.round} · ${g.alive.length} en jeu</span>
+        <button class="btn ghost small" id="quit">Quitter</button></div>
+      <h2>À vous de parler</h2>
+      <p class="lede">Un mot chacun, dans cet ordre. Puis débattez et votez.</p>
+      <ol class="order">
+        ${g.order.map((id, i) => `<li>${esc(byId(id).name)}${i === 0 ? `<span class="first">commence</span>` : ""}</li>`).join("")}
+        ${g.log.map(e => `<li class="out">${esc(byId(e.id).name)}</li>`).join("")}
+      </ol>
+      <button class="btn block" id="to-vote">Passer au vote</button>
+      <button class="btn ghost block" id="to-peek">Revoir mon mot</button>
+      <p class="hint">Thème : ${esc(g.pair.cat)} · ${S.impostors} imposteur${S.impostors > 1 ? "s" : ""} dans la partie</p>`;
+  }
+
+  function viewPeek() {
+    const g = S.game, sel = S.ui.peekId;
+    if (sel == null) {
+      return `
+        <div class="topbar"><span class="label">Revoir son mot</span><button class="btn ghost small" id="back">Retour</button></div>
+        <h2>Qui veut revoir son mot ?</h2>
+        <div class="vote-grid">${g.alive.map(id => `<button data-peek="${id}">${esc(byId(id).name)}</button>`).join("")}</div>`;
+    }
+    return `
+      <div class="topbar"><span class="label">Revoir son mot</span><button class="btn ghost small" id="back">Retour</button></div>
+      <section class="deal">
+        <p class="who">${esc(byId(sel).name)}</p>
+        ${cardHTML(wordOf(sel))}
+        <button class="btn block" id="back2">C'est bon</button>
+      </section>`;
+  }
+
+  function viewVote() {
+    const g = S.game, sel = S.ui.voteId;
+    return `
+      <div class="topbar"><span class="label">Vote · tour ${g.round}</span><button class="btn ghost small" id="back">Retour</button></div>
+      <h2>Qui éliminez-vous ?</h2>
+      <p class="lede">Comptez les voix à main levée. En cas d'égalité, revotez entre les ex æquo.</p>
+      <div class="vote-grid">
+        ${g.order.map(id => `<button data-vote="${id}" aria-pressed="${sel === id}">${esc(byId(id).name)}</button>`).join("")}
+      </div>
+      ${sel != null ? `
+        <div class="confirm">
+          <p><b>${esc(byId(sel).name)}</b> est éliminé et son rôle sera révélé.</p>
+          <div class="row"><button class="btn" id="confirm-vote">Éliminer</button><button class="btn ghost" id="cancel-vote">Annuler</button></div>
+        </div>` : ""}`;
+  }
+
+  function viewVerdict() {
+    const g = S.game, id = S.ui.lastOut, imp = g.roles[id] === "imp";
+    const impLeft = g.alive.filter(x => g.roles[x] === "imp").length;
+    return `
+      <section class="verdict">
+        <p class="label">${esc(byId(id).name)} était…</p>
+        <h2>${imp ? "un imposteur !" : "un civil."}</h2>
+        <span class="badge ${imp ? "imp" : "civ"}">${imp ? "Imposteur" : "Civil"}</span>
+      </section>
+      ${g.winner ? `<button class="btn block" id="to-end">Voir le résultat</button>` : `
+        <p class="lede" style="text-align:center;margin-inline:auto">${impLeft} imposteur${impLeft > 1 ? "s" : ""} encore en jeu.</p>
+        <button class="btn block" id="next-round">Tour suivant</button>`}`;
+  }
+
+  function viewEnd() {
+    const g = S.game, civWin = g.winner === "civ";
+    const ranked = S.players.slice().sort((a, b) => b.score - a.score);
+    return `
+      <section class="verdict">
+        <p class="label">Partie terminée</p>
+        <h2>${civWin ? "Les civils gagnent !" : (S.impostors > 1 ? "Les imposteurs gagnent !" : "L'imposteur gagne !")}</h2>
+      </section>
+      <div class="words">
+        <div class="w civ"><span class="label">Mot des civils</span><strong>${esc(g.pair.civ)}</strong></div>
+        <div class="w imp"><span class="label">Mot de l'imposteur</span><strong>${esc(g.pair.imp)}</strong></div>
+      </div>
+      <section class="panel">
+        <span class="label">Classement</span>
+        <ul class="player-list">
+          ${ranked.map(p => `<li><span class="name">${esc(p.name)}</span>
+            <span class="tag ${g.roles[p.id]}">${g.roles[p.id] === "imp" ? "Imposteur" : "Civil"}</span>
+            ${g.gains[p.id] ? `<span class="gain">+${g.gains[p.id]}</span>` : ""}
+            <span class="pts" style="padding-right:.6rem">${p.score} pt${p.score > 1 ? "s" : ""}</span></li>`).join("")}
+        </ul>
+      </section>
+      <button class="btn block" id="again">Nouvelle manche</button>
+      <button class="btn ghost block" id="to-setup">Modifier les joueurs</button>`;
+  }
+
+  // ---------- Carte : maintenir appuyé pour révéler ----------
+  function bindCard(onSeen) {
+    const card = $("#card");
+    if (!card) return;
+    const open = e => { e.preventDefault(); card.classList.add("open"); onSeen && onSeen(); };
+    const close = () => card.classList.remove("open");
+    card.addEventListener("pointerdown", open);
+    ["pointerup", "pointerleave", "pointercancel"].forEach(t => card.addEventListener(t, close));
+    card.addEventListener("contextmenu", e => e.preventDefault());
+    card.addEventListener("keydown", e => { if (e.key === " " || e.key === "Enter") open(e); });
+    card.addEventListener("keyup", e => { if (e.key === " " || e.key === "Enter") close(); });
+    card.addEventListener("blur", close);
+  }
+  function on(sel, fn) { const el = $(sel); if (el) el.addEventListener("click", fn); }
+  function quitBtn() { on("#quit", () => { if (S.ui.quitArmed) { S.game = null; go("setup"); } else { S.ui.quitArmed = true; const b = $("#quit"); b.textContent = "Sûr ? Toucher encore"; } }); }
+
+  const bind = {
+    setup() {
+      $("#add-form").addEventListener("submit", e => {
+        e.preventDefault();
+        const input = $("#new-name"), name = input.value.trim();
+        if (!name) return;
+        S.players.push({ id: nextId++, name, score: 0 });
+        save(); render(); $("#new-name").focus();
+      });
+      app.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => {
+        S.players = S.players.filter(p => p.id !== +b.dataset.del); save(); render();
+      }));
+      on("#imp-minus", () => { S.impostors = Math.max(1, S.impostors - 1); save(); render(); });
+      on("#imp-plus", () => { S.impostors = Math.min(maxImpostors(S.players.length), S.impostors + 1); save(); render(); });
+      app.querySelectorAll("[data-cat]").forEach(b => b.addEventListener("click", () => {
+        const c = b.dataset.cat;
+        S.cats = S.cats.includes(c) ? S.cats.filter(x => x !== c) : S.cats.concat(c);
+        save(); render();
+      }));
+      on("#all-cats", () => { S.cats = S.cats.length === CATS.length ? [] : CATS.slice(); save(); render(); });
+      on("#reset-scores", () => { S.players.forEach(p => p.score = 0); save(); render(); });
+      on("#start", startGame);
+    },
+    deal() {
+      quitBtn();
+      bindCard(() => { if (!S.ui.seen) { S.ui.seen = true; $("#next").disabled = false; } });
+      on("#next", () => {
+        const g = S.game;
+        if (g.dealIndex < g.dealOrder.length - 1) { g.dealIndex++; S.ui = { seen: false }; go("deal"); }
+        else { S.ui = {}; go("table"); }
+      });
+    },
+    table() {
+      quitBtn();
+      on("#to-vote", () => { S.ui = {}; go("vote"); });
+      on("#to-peek", () => { S.ui = {}; go("peek"); });
+    },
+    peek() {
+      app.querySelectorAll("[data-peek]").forEach(b => b.addEventListener("click", () => { S.ui.peekId = +b.dataset.peek; render(); }));
+      bindCard();
+      on("#back", () => { S.ui = {}; go("table"); });
+      on("#back2", () => { S.ui = {}; go("table"); });
+    },
+    vote() {
+      app.querySelectorAll("[data-vote]").forEach(b => b.addEventListener("click", () => { S.ui.voteId = +b.dataset.vote; render(); }));
+      on("#back", () => { S.ui = {}; go("table"); });
+      on("#cancel-vote", () => { S.ui = {}; render(); });
+      on("#confirm-vote", () => eliminate(S.ui.voteId));
+    },
+    verdict() {
+      on("#to-end", () => go("end"));
+      on("#next-round", () => { S.game.round++; newRoundOrder(); S.ui = {}; go("table"); });
+    },
+    end() {
+      on("#again", startGame);
+      on("#to-setup", () => { S.game = null; go("setup"); });
+    }
+  };
+
+  // Garder la partie en cours si la page est mise à jour pendant qu'elle est ouverte
+  window.claude?.hot?.snapshot?.(() => ({ screen: S.screen, game: S.game, ui: S.ui }));
+  function start(data) {
+    if (data && data.game) { S.game = data.game; S.screen = data.screen; S.ui = data.ui || {}; }
+    render();
+  }
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
