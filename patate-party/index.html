@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFD23F">
+<title>Patate Party</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<style>
+/* Layout: one phone-sized column of chunky "sticker" cards on a sunny dotted table; one screen per game step. */
+/* Deliberately single-theme: a bright toy-box look that reads the same on any host background. */
+:root {
+  --sun: #FFD23F;
+  --sun-deep: #F5B700;
+  --ink: #1E1B3A;
+  --paper: #FFFDF5;
+  --tomato: #FF5A36;
+  --mint: #22C3A6;
+  --sky: #5BC0EB;
+  --pink: #FF8FB1;
+  --grape: #9B6BFF;
+  --muted: #5E5878;
+  --display: "Lilita One", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  background-color: var(--sun);
+  background-image: radial-gradient(var(--sun-deep) 2px, transparent 2.5px);
+  background-size: 26px 26px;
+  color: var(--ink);
+  font-family: var(--body);
+  font-weight: 800;
+  font-size: 17px;
+  -webkit-user-select: none; user-select: none;
+  overscroll-behavior: none;
+}
+#app {
+  max-width: 520px; margin: 0 auto; min-height: 100%;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px 96px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap: balance; line-height: 1.05; }
+p { margin: 0; line-height: 1.4; }
+
+.card {
+  background: var(--paper); border: 3px solid var(--ink); border-radius: 22px;
+  box-shadow: 0 6px 0 var(--ink); padding: 18px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.btn {
+  font-family: var(--display); font-size: 1.6rem; letter-spacing: .02em;
+  color: var(--ink); background: var(--mint);
+  border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 6px 0 var(--ink);
+  padding: 14px 18px; cursor: pointer; width: 100%;
+  transition: transform .08s, box-shadow .08s;
+}
+.btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--ink); }
+.btn:focus-visible, .chip:focus-visible, input:focus-visible, .ava:focus-visible { outline: 4px solid var(--grape); outline-offset: 3px; }
+.btn.red { background: var(--tomato); color: var(--paper); }
+.btn.pink { background: var(--pink); }
+.btn.sky { background: var(--sky); }
+.btn.white { background: var(--paper); }
+.btn.small { font-size: 1.15rem; padding: 10px 14px; }
+
+/* ---------- Logo ---------- */
+.logo { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 6px; }
+.logo .spud { font-size: 4.6rem; line-height: 1; animation: wobble 2.4s ease-in-out infinite; display: inline-block; }
+.logo h1 { font-size: 3.3rem; color: var(--paper); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 5px 0 var(--ink); transform: rotate(-3deg); }
+.logo p { color: var(--ink); font-size: 1rem; }
+@keyframes wobble { 0%,100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg) scale(1.06); } }
+
+/* ---------- Setup ---------- */
+.label { font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
+.prow { display: grid; grid-template-columns: 50px minmax(0,1fr) auto auto; gap: 6px; align-items: center; }
+.ava {
+  width: 50px; height: 50px; font-size: 1.8rem; border-radius: 16px;
+  border: 3px solid var(--ink); background: var(--sun); cursor: pointer; padding: 0;
+  display: grid; place-items: center;
+}
+.prow input {
+  min-width: 0; width: 100%; font: inherit; font-size: 1.1rem; color: var(--ink);
+  border: 3px solid var(--ink); border-radius: 14px; padding: 10px; background: #fff;
+  -webkit-user-select: text; user-select: text;
+}
+.chip {
+  font: inherit; font-size: .95rem; border: 3px solid var(--ink); border-radius: 999px;
+  padding: 8px 12px; background: var(--paper); color: var(--ink); cursor: pointer; white-space: nowrap;
+}
+.chip.on { background: var(--ink); color: var(--paper); }
+.chip.kid.on { background: var(--pink); color: var(--ink); }
+.chip.x { padding: 8px 9px; }
+.prow .chip { padding: 8px 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---------- Round intro ---------- */
+.eyebrow { font-family: var(--display); font-size: 1.1rem; background: var(--ink); color: var(--sun); align-self: center; padding: 6px 14px; border-radius: 999px; }
+.bigicon { font-size: 6rem; text-align: center; line-height: 1; animation: pop .5s cubic-bezier(.3,1.6,.5,1) both; }
+@keyframes pop { from { transform: scale(.2) rotate(-20deg); } to { transform: none; } }
+.title { font-size: 2.5rem; text-align: center; }
+.rules { font-size: 1.15rem; }
+.center { text-align: center; }
+
+/* ---------- Player chips & lists ---------- */
+.who { display: inline-flex; align-items: center; gap: 6px; font-family: var(--display); font-size: 1.5rem; }
+.pick { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+.pick .btn { font-size: 1.2rem; padding: 12px 8px; background: var(--paper); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pick .btn .e { font-size: 2.2rem; line-height: 1; }
+.pick .btn.on { background: var(--mint); }
+.pick .btn .nm { overflow-wrap: anywhere; }
+
+/* ---------- Mime ---------- */
+.secret { font-size: 7rem; text-align: center; line-height: 1.1; }
+.secret-text { font-family: var(--display); font-size: 2rem; text-align: center; }
+.ring { width: 150px; height: 150px; margin: 0 auto; position: relative; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .num { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); font-size: 3.4rem; font-variant-numeric: tabular-nums; }
+.shush { font-size: 1.3rem; text-align: center; }
+
+/* ---------- Patate ---------- */
+.cat { font-family: var(--display); font-size: 2.1rem; text-align: center; background: var(--ink); color: var(--sun); border-radius: 18px; padding: 12px; }
+.potato {
+  font-size: 9rem; line-height: 1; background: none; border: 0; cursor: pointer; padding: 10px;
+  display: block; margin: 0 auto; filter: drop-shadow(0 8px 0 rgba(30,27,58,.35));
+  touch-action: manipulation;
+}
+.potato.shake { animation: shake var(--spd, .5s) linear infinite; }
+@keyframes shake { 0%,100% { transform: rotate(0) } 25% { transform: rotate(-9deg) translateX(-4px) } 75% { transform: rotate(9deg) translateX(4px) } }
+.boom { font-size: 8rem; text-align: center; animation: boom .6s cubic-bezier(.2,1.8,.4,1) both; }
+@keyframes boom { from { transform: scale(.1); } to { transform: scale(1); } }
+.flash { position: fixed; inset: 0; background: var(--paper); pointer-events: none; animation: flash .5s ease-out forwards; z-index: 40; }
+@keyframes flash { from { opacity: 1 } to { opacity: 0 } }
+.gage { background: var(--pink); border: 3px solid var(--ink); border-radius: 18px; padding: 14px; font-size: 1.35rem; text-align: center; }
+
+/* ---------- Défi ---------- */
+.order { display: flex; flex-direction: column; gap: 8px; }
+.order .it { display: flex; align-items: center; gap: 10px; border: 3px solid var(--ink); border-radius: 16px; padding: 8px 12px; background: var(--paper); font-size: 1.2rem; }
+.order .it .e { font-size: 1.8rem; }
+.order .it.now { background: var(--mint); transform: scale(1.03); }
+.order .it.done { opacity: .45; }
+.countdown { font-family: var(--display); font-size: 8rem; text-align: center; line-height: 1; animation: pop .45s cubic-bezier(.3,1.6,.5,1) both; }
+
+/* ---------- Tape ---------- */
+.tomato {
+  width: min(78vw, 320px); aspect-ratio: 1; max-width: 100%; margin: 0 auto; display: grid; place-items: center;
+  font-size: min(48vw, 200px); line-height: 1; border-radius: 50%;
+  background: radial-gradient(circle, #fff6 0 40%, transparent 41%);
+  border: 0; cursor: pointer; touch-action: none; padding: 0;
+}
+.tomato.hit { animation: squish .12s ease-out; }
+@keyframes squish { 50% { transform: scale(.86, .78); } }
+.counter { font-family: var(--display); font-size: 4rem; text-align: center; font-variant-numeric: tabular-nums; line-height: 1; }
+.bar { height: 14px; border: 3px solid var(--ink); border-radius: 999px; background: var(--paper); overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--tomato); width: 100%; transition: width .1s linear; }
+
+/* ---------- Scores ---------- */
+.score-row { display: grid; grid-template-columns: 44px minmax(0,1fr) auto; gap: 10px; align-items: center; }
+.score-row .e { font-size: 2rem; text-align: center; }
+.score-row .nm { font-size: 1.15rem; overflow-wrap: anywhere; }
+.score-row .pts { font-family: var(--display); font-size: 1.8rem; font-variant-numeric: tabular-nums; }
+.score-row .delta { font-family: var(--display); color: var(--mint); -webkit-text-stroke: 1px var(--ink); margin-left: 6px; font-size: 1.3rem; }
+.sbar { grid-column: 2 / 4; height: 12px; border-radius: 999px; background: #EFE9D6; overflow: hidden; margin-top: -6px; }
+.sbar > i { display: block; height: 100%; background: var(--grape); border-radius: 999px; transition: width .8s cubic-bezier(.3,1.4,.5,1); }
+
+/* ---------- Podium ---------- */
+.crown { font-size: 3rem; text-align: center; margin-bottom: -18px; animation: wobble 1.6s ease-in-out infinite; }
+.champ { font-size: 6.5rem; text-align: center; line-height: 1; }
+.award { display: grid; grid-template-columns: 44px minmax(0,1fr); gap: 10px; align-items: center; }
+.award .e { font-size: 2rem; text-align: center; }
+.award small { display: block; color: var(--muted); font-size: .95rem; }
+
+/* ---------- Floating prout button ---------- */
+.prout {
+  position: fixed; z-index: 30;
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  width: 66px; height: 66px; border-radius: 50%;
+  border: 3px solid var(--ink); background: var(--grape); box-shadow: 0 5px 0 var(--ink);
+  font-size: 2rem; cursor: pointer; display: grid; place-items: center; padding: 0;
+}
+.prout:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
+.prout.puff { animation: puff .4s ease-out; }
+@keyframes puff { 40% { transform: scale(1.25) rotate(12deg); } }
+.cloud { position: fixed; z-index: 29; pointer-events: none; font-size: 2.4rem; animation: cloud 1.1s ease-out forwards; }
+@keyframes cloud { to { transform: translate(-60px, -140px) scale(2.2); opacity: 0; } }
+#confetti { position: fixed; inset: 0; pointer-events: none; z-index: 35; width: 100%; height: 100%; }
+.tiny { font-size: .9rem; color: var(--muted); text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<main id="app" aria-live="polite"></main>
+<button class="prout" id="prout" aria-label="Bouton prout">💨</button>
+<canvas id="confetti"></canvas>
+
+<script>
+(() => {
+'use strict';
+
+/* ====================== Contenu du jeu ====================== */
+const AVATARS = ['🦊','🐼','🐸','🦄','🐯','🐵','🐙','🦖','🐷','🐨','🦁','🐰','🐧','🐶'];
+
+const GAMES = {
+  mime:   { icon: '🎭', name: 'Mime Mystère', btn: 'sky',
+            rules: "Chacun son tour, tu regardes un mime secret et tu le joues SANS parler. Si quelqu'un devine, vous gagnez 1 point tous les deux !" },
+  patate: { icon: '🥔', name: 'Patate Explosive', btn: 'red',
+            rules: "Le téléphone est une patate qui va exploser ! Dis un mot de la catégorie, tape sur la patate et passe vite le téléphone à ton voisin. Si elle explose dans tes mains, tu as un gage, et les autres gagnent 1 point." },
+  defi:   { icon: '🤪', name: 'Défi Rigolo', btn: 'pink',
+            rules: "Tout le monde fait le défi, chacun son tour. Ensuite, on vote pour le plus drôle. Le gagnant marque 2 points !" },
+  tape:   { icon: '🍅', name: 'Tape-Tomate Turbo', btn: '',
+            rules: "Tape sur la tomate le plus vite possible ! Le premier gagne 3 points, le deuxième 2, le troisième 1." }
+};
+
+const MIMES = [
+  ['🦖','Un dinosaure qui se brosse les dents'], ['🐔','Une poule qui fait du skate'],
+  ['🐘','Un éléphant qui danse'], ['🧙','Un magicien qui rate son tour'],
+  ['🦀','Un crabe très pressé'], ['🐒','Un singe qui mange une banane géante'],
+  ['🚀','Un astronaute qui marche sur la Lune'], ['🐧','Un pingouin qui glisse sur la glace'],
+  ['🧛','Un vampire qui a peur du noir'], ['👻','Un fantôme qui a le hoquet'],
+  ['🐸','Une grenouille qui saute dans les flaques'], ['🤖','Un robot qui tombe en panne'],
+  ['🦸','Un super-héros qui a perdu sa cape'], ['🐌','Un escargot qui fait la course'],
+  ['🐱','Un chat qui ne veut pas prendre son bain'], ['🍝','Manger des spaghettis très longs'],
+  ['🐄','Une vache qui fait de la danse classique'], ['🧟','Un zombie qui fait du yoga'],
+  ['🐶','Un chien qui court après sa queue'], ['🎸','Une star du rock qui a mal au dos'],
+  ['🦒','Une girafe qui boit avec une paille'], ['🧊','Quelqu’un qui a très très froid'],
+  ['🐝','Une abeille qui cherche des fleurs'], ['🏊','Nager dans de la confiture'],
+  ['🦘','Un kangourou qui saute à la corde'], ['🐙','Une pieuvre qui s’habille'],
+  ['🍦','Une glace qui fond au soleil'], ['🦷','Un dentiste qui a peur des dents'],
+  ['🐻','Un ours qui se réveille de l’hiver'], ['🏴‍☠️','Un pirate qui a le mal de mer']
+];
+
+const CATS = [
+  ['🐾','Un animal'], ['🍕','Un truc qui se mange'], ['💛','Un truc jaune'],
+  ['🍳','Un truc dans la cuisine'], ['🦸','Un super-héros'], ['🧦','Un truc qui pue'],
+  ['✈️','Un truc qui vole'], ['⚽','Un sport'], ['⚪','Un truc rond'],
+  ['🍓','Un fruit ou un légume'], ['👩‍🚒','Un métier'], ['🧸','Un jouet'],
+  ['🌊','Un animal de la mer'], ['🔴','Un truc rouge'], ['🛁','Un truc dans la salle de bain'],
+  ['🎨','Une couleur'], ['🐉','Un monstre ou une créature'], ['🚗','Un truc qui roule']
+];
+
+const GAGES = [
+  'Fais 5 sauts de grenouille 🐸', 'Chante « Joyeux anniversaire » avec une voix de souris 🐭',
+  'Marche comme un pingouin jusqu’à la porte 🐧', 'Fais le bruit d’une vache qui éternue 🐄',
+  'Dis « saucisson » 3 fois en louchant 👀', 'Fais un gros câlin à la personne à ta gauche 🤗',
+  'Danse comme un robot pendant 5 secondes 🤖', 'Fais le rire d’une sorcière 🧙',
+  'Parle comme un bébé jusqu’au prochain jeu 👶', 'Fais ta plus belle grimace pendant 5 secondes 😝',
+  'Fais le tour de la table à cloche-pied 🦩', 'Imite un chat qui veut des croquettes 🐱',
+  'Dis « Je suis une petite patate » avec la voix d’un géant 🥔', 'Fais semblant d’être un spaghetti tout mou 🍝'
+];
+
+const DEFIS = [
+  ['👹','La grimace de monstre la plus effrayante'], ['🦍','Le meilleur cri de Tarzan'],
+  ['😈','Le meilleur rire de méchant'], ['🐔','La meilleure imitation de poule'],
+  ['💃','Le pas de danse le plus ridicule'], ['🤖','Dire « Je veux des frites » avec une voix de robot'],
+  ['🦁','Le plus gros rugissement de lion'], ['🍋','La tête de quelqu’un qui croque un citron'],
+  ['🤧','Le faux éternuement le plus énorme'], ['😴','Imiter quelqu’un qui se réveille le matin'],
+  ['🐒','La meilleure imitation de singe'], ['🧽','Faire semblant d’être une éponge qui se fait essorer'],
+  ['🎤','Chanter « Au clair de la lune » en mode opéra'], ['🥶','Faire semblant d’avoir le plus froid du monde'],
+  ['🐍','Le meilleur serpent qui siffle'], ['🦖','Marcher comme un T-Rex avec des petits bras']
+];
+
+const TAP_WAYS = [
+  ['☝️','avec un seul doigt'], ['🤙','avec le petit doigt'], ['👍','avec le pouce'],
+  ['👃','avec le bout du nez'], ['✋','avec la main qui n’écrit pas']
+];
+
+const TITLES = [
+  ['💨','Médaille d’or du prout'], ['🎭','Super star du mime'], ['🥔','Roi ou reine des patates'],
+  ['🤪','Champion·ne des grimaces'], ['🍅','Doigts de foudre'], ['🐔','Meilleure poule de la maison'],
+  ['🦖','Dino le plus rigolo'], ['🌟','Rayon de soleil de la famille'], ['🍝','Spaghetti d’honneur'],
+  ['🐸','Grenouille la plus sauteuse']
+];
+
+/* ====================== État ====================== */
+const DEFAULT_PLAYERS = [
+  { name: 'Renard', emoji: '🦊', kid: false },
+  { name: 'Panda', emoji: '🐼', kid: false },
+  { name: 'Grenouille', emoji: '🐸', kid: true },
+  { name: 'Licorne', emoji: '🦄', kid: true }
+];
+
+const S = {
+  screen: 'setup',
+  players: [],
+  rounds: 6,
+  tts: true,
+  plan: [],
+  round: 0,
+  R: {},          // état de la manche en cours
+  last: {},       // points gagnés pendant la dernière manche (par index)
+  bags: {}        // pioches sans répétition
+};
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem('patate-party') || 'null');
+    if (d && Array.isArray(d.players) && d.players.length >= 2) {
+      S.players = d.players.map(p => ({ name: String(p.name || '').slice(0, 16), emoji: p.emoji || '🙂', kid: !!p.kid, score: 0 }));
+      if ([4, 6, 8].includes(d.rounds)) S.rounds = d.rounds;
+      if (typeof d.tts === 'boolean') S.tts = d.tts;
+      return;
+    }
+  } catch (e) {}
+  S.players = DEFAULT_PLAYERS.map(p => ({ ...p, score: 0 }));
+}
+function save() {
+  try {
+    localStorage.setItem('patate-party', JSON.stringify({
+      players: S.players.map(p => ({ name: p.name, emoji: p.emoji, kid: p.kid })), rounds: S.rounds, tts: S.tts
+    }));
+  } catch (e) {}
+}
+
+/* ====================== Outils ====================== */
+const $app = document.getElementById('app');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const rnd = n => Math.floor(Math.random() * n);
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+function draw(key, list) {                 // pioche sans répétition jusqu'à épuisement
+  if (!S.bags[key] || !S.bags[key].length) S.bags[key] = shuffle(list);
+  return S.bags[key].pop();
+}
+const nameOf = p => p.name.trim() || 'Joueur';
+const tag = p => `<span class="who"><span>${p.emoji}</span><span>${esc(nameOf(p))}</span></span>`;
+const hasKids = () => S.players.some(p => p.kid);
+const hasGrown = () => S.players.some(p => !p.kid);
+
+let timers = [];
+const later = (fn, ms) => { const id = setTimeout(fn, ms); timers.push(id); return id; };
+const every = (fn, ms) => { const id = setInterval(fn, ms); timers.push(id); return id; };
+const clearTimers = () => { timers.forEach(id => { clearTimeout(id); clearInterval(id); }); timers = []; };
+const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+
+/* ====================== Voix ====================== */
+let frVoice = null;
+function pickVoice() {
+  try {
+    const vs = speechSynthesis.getVoices();
+    frVoice = vs.find(v => /^fr(-|_)FR/i.test(v.lang)) || vs.find(v => /^fr/i.test(v.lang)) || null;
+  } catch (e) {}
+}
+try { if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; } } catch (e) {}
+function say(text, force) {
+  if ((!S.tts && !force) || !('speechSynthesis' in window)) return;
+  try {
+    speechSynthesis.cancel();
+    const clean = String(text).replace(/\p{Extended_Pictographic}|‍|️/gu, '').replace(/·/g, '');
+    const u = new SpeechSynthesisUtterance(clean);
+    u.lang = 'fr-FR'; u.rate = 1; u.pitch = 1.15;
+    if (frVoice) u.voice = frVoice;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+const hush = () => { try { speechSynthesis.cancel(); } catch (e) {} };
+
+/* ====================== Sons (synthétisés) ====================== */
+let AC = null;
+function ac() {
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+    return AC;
+  } catch (e) { return null; }
+}
+function tone(f1, f2, dur, type = 'sine', vol = .25, delay = 0) {
+  const c = ac(); if (!c) return;
+  const t = c.currentTime + delay;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = type; o.frequency.setValueAtTime(f1, t);
+  if (f2 !== f1) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .01);
+  g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + .05);
+}
+function noise(dur, f1, f2, vol = .5) {
+  const c = ac(); if (!c) return;
+  const t = c.currentTime;
+  const buf = c.createBuffer(1, Math.floor(c.sampleRate * dur), c.sampleRate);
+  const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const s = c.createBufferSource(); s.buffer = buf;
+  const f = c.createBiquadFilter(); f.type = 'lowpass';
+  f.frequency.setValueAtTime(f1, t); f.frequency.exponentialRampToValueAtTime(f2, t + dur);
+  const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  s.connect(f); f.connect(g); g.connect(c.destination); s.start(t);
+}
+const SFX = {
+  pop:    () => tone(500 + rnd(300), 1300, .07, 'sine', .2),
+  boing:  () => { tone(180, 520, .25, 'sine', .3); tone(520, 300, .2, 'triangle', .12, .2); },
+  tick:   () => tone(1100, 1100, .04, 'square', .08),
+  tock:   () => tone(700, 700, .04, 'square', .08),
+  boom:   () => { noise(1.4, 4000, 60, .9); tone(120, 30, .8, 'sawtooth', .4); },
+  buzzer: () => { tone(160, 140, .5, 'sawtooth', .25); tone(165, 145, .5, 'square', .1); },
+  yay:    () => [523, 659, 784, 1047].forEach((f, i) => tone(f, f, .18, 'triangle', .25, i * .11)),
+  fanfare:() => [392, 523, 659, 784, 659, 784, 1047].forEach((f, i) => tone(f, f, i === 6 ? .6 : .16, 'triangle', .28, i * .14)),
+  beep:   () => tone(660, 660, .12, 'square', .12),
+  go:     () => tone(990, 990, .3, 'square', .15),
+  fart() {
+    const c = ac(); if (!c) return;
+    const t = c.currentTime, dur = .45 + Math.random() * .8, base = 55 + Math.random() * 55;
+    const o = c.createOscillator(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(base * 1.2, t); o.frequency.exponentialRampToValueAtTime(base * .7, t + dur);
+    const lfo = c.createOscillator(); lfo.frequency.value = 14 + Math.random() * 22;
+    const lg = c.createGain(); lg.gain.value = base * .5; lfo.connect(lg); lg.connect(o.frequency);
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 350 + Math.random() * 350; f.Q.value = 6;
+    const g = c.createGain();
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.7, t + .03);
+    g.gain.setValueAtTime(.6, t + dur * .75); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(f); f.connect(g); g.connect(c.destination);
+    o.start(t); lfo.start(t); o.stop(t + dur + .05); lfo.stop(t + dur + .05);
+    if (Math.random() < .35) tone(base * 3, base * 1.5, .12, 'sawtooth', .15, dur); // le petit « pfft » final
+  }
+};
+
+/* ====================== Confettis ====================== */
+const cv = document.getElementById('confetti'), cx = cv.getContext('2d');
+let parts = [], confRaf = 0;
+function confetti(n = 160) {
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio;
+  const cols = ['#FF5A36', '#22C3A6', '#5BC0EB', '#FF8FB1', '#9B6BFF', '#FFFDF5'];
+  for (let i = 0; i < n; i++) parts.push({
+    x: Math.random() * cv.width, y: -Math.random() * cv.height * .5,
+    vx: (Math.random() - .5) * 4, vy: 2 + Math.random() * 5, r: Math.random() * 6.28, vr: (Math.random() - .5) * .3,
+    w: (6 + Math.random() * 8) * devicePixelRatio, h: (10 + Math.random() * 10) * devicePixelRatio, c: cols[rnd(cols.length)]
+  });
+  if (!confRaf) confRaf = requestAnimationFrame(stepConf);
+}
+function stepConf() {
+  cx.clearRect(0, 0, cv.width, cv.height);
+  parts = parts.filter(p => p.y < cv.height + 40);
+  for (const p of parts) {
+    p.x += p.vx; p.y += p.vy; p.r += p.vr; p.vy += .04;
+    cx.save(); cx.translate(p.x, p.y); cx.rotate(p.r); cx.fillStyle = p.c; cx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); cx.restore();
+  }
+  confRaf = parts.length ? requestAnimationFrame(stepConf) : 0;
+}
+
+/* ====================== Navigation ====================== */
+function go(screen) {
+  clearTimers();
+  S.screen = screen;
+  render();
+  window.scrollTo(0, 0);
+}
+function render() {
+  const fn = VIEWS[S.screen];
+  $app.innerHTML = fn ? fn() : '';
+  const after = AFTER[S.screen]; if (after) after();
+}
+
+function buildPlan(n) {
+  const types = Object.keys(GAMES), plan = [];
+  while (plan.length < n) {
+    let s = shuffle(types);
+    if (plan.length && s[0] === plan[plan.length - 1]) s.push(s.shift());
+    plan.push(...s);
+  }
+  return plan.slice(0, n);
+}
+function startGame() {
+  S.players.forEach(p => { p.score = 0; if (!p.name.trim()) p.name = 'Joueur'; });
+  save();
+  S.plan = buildPlan(S.rounds); S.round = 0;
+  try { navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {}
+  go('intro');
+}
+function startRound() {
+  S.last = {};
+  const type = S.plan[S.round];
+  const n = S.players.length;
+  const first = rnd(n);
+  S.R = { type, order: Array.from({ length: n }, (_, i) => (first + i) % n), step: 0 };
+  if (type === 'mime') go('mimePass');
+  if (type === 'patate') { S.R.booms = 0; go('patateReady'); }
+  if (type === 'defi') { S.R.defi = draw('defi', DEFIS); go('defiPlay'); }
+  if (type === 'tape') { S.R.way = draw('tap', TAP_WAYS); S.R.taps = {}; go('tapePass'); }
+}
+function give(i, pts) { S.players[i].score += pts; S.last[i] = (S.last[i] || 0) + pts; }
+function endRound() { SFX.yay(); go('scores'); }
+
+/* ====================== Écrans ====================== */
+const VIEWS = {}, AFTER = {};
+
+/* ---------- Réglages ---------- */
+VIEWS.setup = () => `
+  <div class="logo">
+    <span class="spud" aria-hidden="true">🥔</span>
+    <h1>Patate Party</h1>
+    <p>Le jeu de fête de la famille, sur un seul téléphone</p>
+  </div>
+  <section class="card">
+    <span class="label">Les joueurs · touche l’animal pour le changer</span>
+    ${S.players.map((p, i) => `
+      <div class="prow">
+        <button class="ava" data-a="ava" data-v="${i}" aria-label="Changer l’animal de ${esc(nameOf(p))}">${p.emoji}</button>
+        <input id="pname-${i}" data-i="${i}" maxlength="16" value="${esc(p.name)}" placeholder="Prénom" aria-label="Prénom du joueur ${i + 1}" autocomplete="off">
+        <button class="chip kid ${p.kid ? 'on' : ''}" data-a="kid" data-v="${i}" aria-pressed="${p.kid}">${p.kid ? 'Petit' : 'Grand'}</button>
+        ${S.players.length > 2 ? `<button class="chip x" data-a="del" data-v="${i}" aria-label="Retirer ce joueur">✕</button>` : '<span></span>'}
+      </div>`).join('')}
+    ${S.players.length < 6 ? `<button class="btn white small" data-a="add">＋ Ajouter un joueur</button>` : ''}
+  </section>
+  <section class="card">
+    <span class="label">Combien de manches ?</span>
+    <div class="chips">
+      ${[[4, 'Rapide · 4'], [6, 'Normal · 6'], [8, 'Marathon · 8']].map(([v, l]) =>
+        `<button class="chip ${S.rounds === v ? 'on' : ''}" data-a="rounds" data-v="${v}">${l}</button>`).join('')}
+    </div>
+    <span class="label">Voix</span>
+    <div class="chips">
+      <button class="chip ${S.tts ? 'on' : ''}" data-a="tts">${S.tts ? '🔊 Le téléphone lit les règles' : '🔇 Pas de voix'}</button>
+    </div>
+    <p class="tiny" style="text-align:left">La voix aide les plus petits qui ne lisent pas encore tout seuls.</p>
+  </section>
+  <button class="btn red" data-a="start">JOUER ! 🎉</button>
+  <p class="tiny">Astuce : le bouton 💨 en bas, c’est pour rigoler à tout moment.</p>
+`;
+
+/* ---------- Présentation de la manche ---------- */
+function gameRules(type) {
+  let r = GAMES[type].rules;
+  if (type === 'tape' && hasKids() && hasGrown()) r += ' Bonus des petits : 7 secondes ! Les grands : seulement 4.';
+  return r;
+}
+VIEWS.intro = () => {
+  const g = GAMES[S.plan[S.round]];
+  return `
+    <span class="eyebrow">Manche ${S.round + 1} sur ${S.plan.length}</span>
+    <div class="bigicon" aria-hidden="true">${g.icon}</div>
+    <h2 class="title">${g.name}</h2>
+    <section class="card"><p class="rules">${esc(gameRules(S.plan[S.round]))}</p></section>
+    <button class="btn ${g.btn}" data-a="round-go">C’est parti !</button>
+    <button class="btn white small" data-a="reread">🔊 Relire les règles</button>`;
+};
+AFTER.intro = () => { const t = S.plan[S.round]; say(GAMES[t].name + '. ' + gameRules(t)); };
+
+/* ---------- Mime ---------- */
+const curP = () => S.players[S.R.order[S.R.step]];
+VIEWS.mimePass = () => `
+  <span class="eyebrow">🎭 Mime ${S.R.step + 1} sur ${S.players.length}</span>
+  <section class="card center">
+    <p>Passe le téléphone à</p>
+    <div>${tag(curP())}</div>
+    <p style="font-size:1.4rem">Les autres, fermez les yeux ! 🙈</p>
+  </section>
+  <button class="btn sky" data-a="mime-see">Je regarde mon mime en secret 👀</button>`;
+AFTER.mimePass = () => { say(`Au tour de ${nameOf(curP())} de mimer ! Les autres, fermez les yeux !`); };
+
+VIEWS.mimeSecret = () => `
+  <span class="eyebrow">🤫 Chut, c’est secret !</span>
+  <section class="card">
+    <div class="secret" aria-hidden="true">${S.R.mime[0]}</div>
+    <p class="secret-text">${esc(S.R.mime[1])}</p>
+    <button class="btn white small" data-a="mime-whisper">🔈 Écouter tout bas (colle le téléphone à ton oreille)</button>
+  </section>
+  <button class="btn sky" data-a="mime-start">J’ai compris, on y va ! ⏱️</button>
+  <button class="btn white small" data-a="mime-other">🔄 Trop dur, un autre</button>`;
+
+const MIME_TIME = 60;
+const ringSVG = (frac, color) => `
+  <svg viewBox="0 0 100 100" aria-hidden="true">
+    <circle cx="50" cy="50" r="42" fill="#FFFDF5" stroke="#1E1B3A" stroke-width="6"></circle>
+    <circle id="ringArc" cx="50" cy="50" r="42" fill="none" stroke="${color}" stroke-width="10" stroke-linecap="round"
+      stroke-dasharray="263.9" stroke-dashoffset="${263.9 * (1 - frac)}"></circle>
+  </svg>`;
+VIEWS.mimePlay = () => {
+  const me = S.R.order[S.R.step];
+  return `
+    <span class="eyebrow">🎭 ${esc(nameOf(curP()))} mime !</span>
+    <div class="ring">${ringSVG(1, 'var(--sky)')}<div class="num" id="num">${MIME_TIME}</div></div>
+    <p class="shush">Pas de bruit, pas de mots… seulement des gestes ! 🤐</p>
+    <section class="card">
+      <span class="label">Qui a trouvé ?</span>
+      <div class="pick">
+        ${S.players.map((p, i) => i === me ? '' : `
+          <button class="btn" data-a="mime-found" data-v="${i}"><span class="e">${p.emoji}</span><span class="nm">${esc(nameOf(p))}</span></button>`).join('')}
+      </div>
+    </section>
+    <button class="btn white small" data-a="mime-fail">Personne n’a trouvé 😢</button>`;
+};
+AFTER.mimePlay = () => {
+  hush();
+  let left = MIME_TIME;
+  every(() => {
+    left--;
+    const n = document.getElementById('num'), a = document.getElementById('ringArc');
+    if (n) n.textContent = left;
+    if (a) a.setAttribute('stroke-dashoffset', 263.9 * (1 - left / MIME_TIME));
+    if (left <= 10 && left > 0) SFX.beep();
+    if (left <= 0) { SFX.buzzer(); buzz(400); S.R.found = null; go('mimeResult'); }
+  }, 1000);
+};
+VIEWS.mimeResult = () => {
+  const me = S.R.order[S.R.step], f = S.R.found;
+  return `
+    <div class="bigicon" aria-hidden="true">${f == null ? '⏰' : '🎉'}</div>
+    <h2 class="title">${f == null ? 'Oh non, personne !' : 'Bravo !'}</h2>
+    <section class="card center">
+      <p>Le mime était :</p>
+      <div class="secret" style="font-size:4.5rem" aria-hidden="true">${S.R.mime[0]}</div>
+      <p class="secret-text">${esc(S.R.mime[1])}</p>
+      ${f == null ? '' : `<p style="font-size:1.25rem">+1 point pour ${S.players[me].emoji} ${esc(nameOf(S.players[me]))} et ${S.players[f].emoji} ${esc(nameOf(S.players[f]))}</p>`}
+    </section>
+    <button class="btn sky" data-a="mime-next">${S.R.step + 1 < S.players.length ? 'Mime suivant ➜' : 'Voir les points 🏆'}</button>`;
+};
+AFTER.mimeResult = () => { say(`Le mime était : ${S.R.mime[1]}`); };
+
+/* ---------- Patate ---------- */
+VIEWS.patateReady = () => `
+  <span class="eyebrow">🥔 Patate ${S.R.booms + 1} sur 2</span>
+  <section class="card center">
+    <p>Tout le monde se met en cercle.</p>
+    <p>La patate commence chez</p>
+    <div>${tag(S.players[S.R.order[0]])}</div>
+    <p class="tiny">Puis on la passe toujours au même voisin, dans cet ordre :<br>
+      ${S.R.order.map(i => S.players[i].emoji).join(' ➜ ')} ➜ …</p>
+  </section>
+  <button class="btn red" data-a="patate-go">Allumer la patate ! 🔥</button>`;
+
+VIEWS.patatePlay = () => `
+  <div class="cat"><span aria-hidden="true">${S.R.cat[0]}</span> ${esc(S.R.cat[1])}</div>
+  <p class="center" style="font-size:1.2rem">Dis un mot, tape sur la patate et passe le téléphone !</p>
+  <button class="potato shake" id="potato" aria-label="Passer la patate">🥔</button>
+  <section class="card center" style="padding:12px"><p>La patate est chez</p><div id="holder">${tag(S.players[S.R.order[S.R.holder]])}</div></section>`;
+AFTER.patatePlay = () => {
+  const start = performance.now(), total = S.R.fuse;
+  let flip = false;
+  const pot = document.getElementById('potato');
+  pot.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    S.R.holder = (S.R.holder + 1) % S.players.length;
+    SFX.boing(); buzz(30);
+    const h = document.getElementById('holder');
+    if (h) h.innerHTML = tag(S.players[S.R.order[S.R.holder]]);
+  });
+  const tickLoop = () => {
+    const el = performance.now() - start, ratio = Math.min(el / total, 1);
+    if (el >= total) { boomNow(); return; }
+    (flip = !flip) ? SFX.tick() : SFX.tock();
+    pot.style.setProperty('--spd', (0.55 - 0.45 * ratio).toFixed(2) + 's');
+    later(tickLoop, 620 - 520 * ratio);
+  };
+  tickLoop();
+};
+function boomNow() {
+  SFX.boom(); buzz([300, 80, 300]);
+  const holderIdx = S.R.order[S.R.holder];
+  S.R.loser = holderIdx;
+  S.R.gage = draw('gage', GAGES);
+  S.players.forEach((_, i) => { if (i !== holderIdx) give(i, 1); });
+  const fl = document.createElement('div'); fl.className = 'flash'; document.body.appendChild(fl);
+  setTimeout(() => fl.remove(), 600);
+  go('patateBoom');
+}
+VIEWS.patateBoom = () => `
+  <div class="boom" aria-hidden="true">💥</div>
+  <h2 class="title">BOUM !</h2>
+  <section class="card center">
+    <p>La patate a explosé chez</p>
+    <div>${tag(S.players[S.R.loser])}</div>
+    <p class="tiny">Tous les autres gagnent 1 point.</p>
+    <span class="label">Ton gage</span>
+    <div class="gage">${esc(S.R.gage)}</div>
+  </section>
+  <button class="btn red" data-a="patate-next">Gage fait ! ${S.R.booms + 1 < 2 ? 'Encore une patate ➜' : 'Voir les points 🏆'}</button>`;
+AFTER.patateBoom = () => { later(() => say(`Boum ! La patate a explosé chez ${nameOf(S.players[S.R.loser])} ! Ton gage : ${S.R.gage}`), 700); };
+
+/* ---------- Défi rigolo ---------- */
+VIEWS.defiPlay = () => {
+  const done = S.R.step >= S.players.length;
+  return `
+    <span class="eyebrow">🤪 Défi rigolo</span>
+    <section class="card center">
+      <div class="secret" style="font-size:4.5rem" aria-hidden="true">${S.R.defi[0]}</div>
+      <p class="secret-text">${esc(S.R.defi[1])}</p>
+    </section>
+    <div class="order">
+      ${S.R.order.map((pi, k) => `<div class="it ${k === S.R.step ? 'now' : ''} ${k < S.R.step ? 'done' : ''}">
+        <span class="e">${S.players[pi].emoji}</span><span>${esc(nameOf(S.players[pi]))}</span>${k === S.R.step ? '<span style="margin-left:auto">← à toi !</span>' : k < S.R.step ? '<span style="margin-left:auto">✓</span>' : ''}</div>`).join('')}
+    </div>
+    ${done ? `<button class="btn pink" data-a="defi-vote">Place au vote ! 🗳️</button>`
+           : `<button class="btn pink" data-a="defi-next">${S.R.step === 0 ? 'J’ai fait mon défi ✓' : 'Fait ! Au suivant ✓'}</button>`}`;
+};
+AFTER.defiPlay = () => {
+  if (S.R.step === 0) say(`Défi rigolo : ${S.R.defi[1]} ! On commence par ${nameOf(curP())}.`);
+  else if (S.R.step < S.players.length) say(`À toi, ${nameOf(curP())} !`);
+  else say('Tout le monde a fait le défi. Place au vote !');
+};
+VIEWS.defiCount = () => `<span class="eyebrow">🗳️ Le vote</span>
+  <p class="center" style="font-size:1.3rem">Préparez votre doigt… on montre tous en même temps le plus drôle !</p>
+  <div class="countdown" id="cd">3</div>`;
+AFTER.defiCount = () => {
+  let n = 3; SFX.beep(); say('3');
+  every(() => {
+    n--;
+    const cd = document.getElementById('cd'); if (!cd) return;
+    if (n > 0) { cd.textContent = n; cd.style.animation = 'none'; void cd.offsetWidth; cd.style.animation = ''; SFX.beep(); say(String(n)); }
+    else if (n === 0) { cd.textContent = '👉'; SFX.go(); say('Montrez !'); }
+    else { S.R.votes = []; go('defiVote'); }
+  }, 900);
+};
+VIEWS.defiVote = () => `
+  <span class="eyebrow">🗳️ Qui a gagné ?</span>
+  <p class="center">Touche le ou les gagnants (en cas d’égalité, plusieurs !).</p>
+  <div class="pick">
+    ${S.players.map((p, i) => `<button class="btn ${S.R.votes.includes(i) ? 'on' : ''}" data-a="defi-pick" data-v="${i}" aria-pressed="${S.R.votes.includes(i)}">
+      <span class="e">${p.emoji}</span><span class="nm">${esc(nameOf(p))}</span></button>`).join('')}
+  </div>
+  <button class="btn pink" data-a="defi-ok" ${S.R.votes.length ? '' : 'disabled style="opacity:.5"'}>Valider +2 points ✓</button>`;
+
+/* ---------- Tape-tomate ---------- */
+const tapTime = p => (hasKids() && hasGrown()) ? (p.kid ? 7 : 4) : 5;
+VIEWS.tapePass = () => {
+  const p = curP();
+  return `
+    <span class="eyebrow">🍅 Joueur ${S.R.step + 1} sur ${S.players.length}</span>
+    <section class="card center">
+      <p>Passe le téléphone à</p>
+      <div>${tag(p)}</div>
+      <p style="font-size:1.3rem">Tape la tomate <b>${esc(S.R.way[1])}</b> ${S.R.way[0]}</p>
+      <p class="tiny">Tu as ${tapTime(p)} secondes !</p>
+    </section>
+    <button class="btn" data-a="tape-ready">Je suis prêt·e ! 🍅</button>`;
+};
+AFTER.tapePass = () => { say(`Au tour de ${nameOf(curP())} ! Tape la tomate ${S.R.way[1]}. Tu as ${tapTime(curP())} secondes.`); };
+VIEWS.tapeCount = () => `<span class="eyebrow">🍅 ${esc(nameOf(curP()))}</span><div class="countdown" id="cd">3</div>`;
+AFTER.tapeCount = () => {
+  let n = 3; SFX.beep();
+  every(() => {
+    n--;
+    const cd = document.getElementById('cd'); if (!cd) return;
+    if (n > 0) { cd.textContent = n; cd.style.animation = 'none'; void cd.offsetWidth; cd.style.animation = ''; SFX.beep(); }
+    else go('tapeGo');
+  }, 750);
+};
+VIEWS.tapeGo = () => `
+  <span class="eyebrow">TAPE ! TAPE ! TAPE !</span>
+  <div class="counter" id="cnt">0</div>
+  <button class="tomato" id="tomato" aria-label="Tomate à taper">🍅</button>
+  <div class="bar"><i id="tbar"></i></div>`;
+AFTER.tapeGo = () => {
+  SFX.go(); hush();
+  const p = curP(), dur = tapTime(p) * 1000, start = performance.now();
+  let count = 0, done = false;
+  const tom = document.getElementById('tomato'), cnt = document.getElementById('cnt'), bar = document.getElementById('tbar');
+  tom.addEventListener('pointerdown', e => {
+    e.preventDefault(); if (done) return;
+    count++; cnt.textContent = count; SFX.pop();
+    tom.classList.remove('hit'); void tom.offsetWidth; tom.classList.add('hit');
+    if (count % 10 === 0) buzz(20);
+  });
+  every(() => {
+    const left = Math.max(0, dur - (performance.now() - start));
+    bar.style.width = (left / dur * 100) + '%';
+    if (left <= 0 && !done) {
+      done = true; SFX.buzzer(); buzz(200);
+      S.R.taps[S.R.order[S.R.step]] = count;
+      later(() => go('tapeDone'), 500);
+    }
+  }, 50);
+};
+VIEWS.tapeDone = () => {
+  const i = S.R.order[S.R.step], last = S.R.step + 1 >= S.players.length;
+  return `
+    <div class="bigicon" aria-hidden="true">💪</div>
+    <section class="card center">
+      <div>${tag(S.players[i])}</div>
+      <div class="counter">${S.R.taps[i]}</div>
+      <p>tapes sur la tomate !</p>
+    </section>
+    <button class="btn" data-a="tape-next">${last ? 'Le classement ! 🏆' : 'Joueur suivant ➜'}</button>`;
+};
+AFTER.tapeDone = () => say(`${S.R.taps[S.R.order[S.R.step]]} tapes ! Bravo ${nameOf(curP())} !`);
+function finishTape() {
+  const ranking = Object.entries(S.R.taps).map(([i, c]) => [+i, c]).sort((a, b) => b[1] - a[1]);
+  const prizes = [3, 2, 1];
+  let place = 0;
+  ranking.forEach(([i, c], k) => {          // égalités = même place
+    if (k > 0 && c < ranking[k - 1][1]) place = k;
+    if (prizes[place]) give(i, prizes[place]);
+  });
+  S.R.ranking = ranking;
+  endRound();
+}
+
+/* ---------- Scores ---------- */
+const MEDAL = ['🥇', '🥈', '🥉'];
+VIEWS.scores = () => {
+  const max = Math.max(1, ...S.players.map(p => p.score));
+  const list = S.players.map((p, i) => ({ p, i })).sort((a, b) => b.p.score - a.p.score);
+  const last = S.round + 1 >= S.plan.length;
+  let tapeRecap = '';
+  if (S.R.type === 'tape' && S.R.ranking) {
+    tapeRecap = `<p class="tiny">${S.R.ranking.map(([i, c]) => `${S.players[i].emoji} ${c}`).join(' · ')} tapes</p>`;
+  }
+  return `
+    <span class="eyebrow">Après la manche ${S.round + 1} sur ${S.plan.length}</span>
+    <h2 class="title">Les points</h2>
+    ${tapeRecap}
+    <section class="card">
+      ${list.map(({ p, i }) => `
+        <div class="score-row">
+          <span class="e">${p.emoji}</span>
+          <span class="nm">${esc(nameOf(p))}</span>
+          <span><span class="pts">${p.score}</span>${S.last[i] ? `<span class="delta">+${S.last[i]}</span>` : ''}</span>
+          <div class="sbar"><i data-w="${p.score / max * 100}" style="width:0"></i></div>
+        </div>`).join('')}
+    </section>
+    <button class="btn ${last ? 'red' : ''}" data-a="next-round">${last ? 'Qui a gagné ? 🥁' : 'Manche suivante ➜'}</button>`;
+};
+AFTER.scores = () => {
+  requestAnimationFrame(() => requestAnimationFrame(() =>
+    document.querySelectorAll('.sbar > i').forEach(el => { el.style.width = el.dataset.w + '%'; })));
+  const lead = S.players.slice().sort((a, b) => b.score - a.score)[0];
+  say(`${nameOf(lead)} est en tête avec ${lead.score} point${lead.score > 1 ? 's' : ''} !`);
+};
+
+/* ---------- Roulement de tambour + podium ---------- */
+VIEWS.drum = () => `<div class="bigicon" aria-hidden="true">🥁</div><h2 class="title">Roulement de tambour…</h2>`;
+AFTER.drum = () => {
+  let k = 0;
+  every(() => { tone(90 + rnd(20), 60, .08, 'triangle', .35); k++; }, 70);
+  say('Roulement de tambour !');
+  later(() => go('podium'), 2400);
+};
+VIEWS.podium = () => {
+  const list = S.players.map((p, i) => ({ p, i })).sort((a, b) => b.p.score - a.p.score);
+  const top = list[0].p.score, winners = list.filter(x => x.p.score === top);
+  const titles = shuffle(TITLES);
+  return `
+    <div class="crown" aria-hidden="true">👑</div>
+    <div class="champ" aria-hidden="true">${winners.map(w => w.p.emoji).join('')}</div>
+    <h2 class="title">${winners.length > 1 ? 'Égalité ! Bravo à ' : 'Bravo '}${winners.map(w => esc(nameOf(w.p))).join(' et ')} !</h2>
+    <p class="center">${top} points · ${winners.length > 1 ? 'Champions' : 'Champion·ne'} de la Patate Party</p>
+    <section class="card">
+      <span class="label">Tout le monde gagne une médaille</span>
+      ${list.map(({ p }, k) => `
+        <div class="award"><span class="e">${MEDAL[k] || '🏅'}</span>
+          <div><b>${p.emoji} ${esc(nameOf(p))}</b> · ${p.score} pts<small>${titles[k % titles.length][0]} ${titles[k % titles.length][1]}</small></div></div>`).join('')}
+    </section>
+    <button class="btn red" data-a="again">Rejouer ! 🔁</button>
+    <button class="btn white small" data-a="home">Changer les joueurs</button>`;
+};
+AFTER.podium = () => {
+  SFX.fanfare(); confetti(); later(() => confetti(120), 1200);
+  const list = S.players.slice().sort((a, b) => b.score - a.score);
+  const top = list[0].score, w = list.filter(p => p.score === top).map(nameOf);
+  later(() => say(`Et le gagnant est… ${w.join(' et ')} ! Bravo à toute la famille !`), 300);
+};
+
+/* ====================== Actions ====================== */
+const ACT = {
+  ava(v) { const p = S.players[v]; p.emoji = AVATARS[(AVATARS.indexOf(p.emoji) + 1) % AVATARS.length]; SFX.pop(); save(); render(); },
+  kid(v) { S.players[v].kid = !S.players[v].kid; SFX.pop(); save(); render(); },
+  del(v) { S.players.splice(+v, 1); save(); render(); },
+  add() {
+    const used = S.players.map(p => p.emoji), e = AVATARS.find(a => !used.includes(a)) || '🙂';
+    S.players.push({ name: '', emoji: e, kid: false, score: 0 }); save(); render();
+    const inp = document.getElementById('pname-' + (S.players.length - 1)); if (inp) inp.focus();
+  },
+  rounds(v) { S.rounds = +v; save(); render(); },
+  tts() { S.tts = !S.tts; save(); render(); if (S.tts) say('Je lirai les règles à voix haute !'); else hush(); },
+  start() { ac(); SFX.yay(); startGame(); },
+  reread() { const t = S.plan[S.round]; say(GAMES[t].name + '. ' + gameRules(t), true); },
+  'round-go'() { hush(); startRound(); },
+
+  'mime-see'() { S.R.mime = draw('mime', MIMES); hush(); go('mimeSecret'); },
+  'mime-other'() { S.R.mime = draw('mime', MIMES); render(); },
+  'mime-whisper'() {
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(S.R.mime[1]); u.lang = 'fr-FR'; u.volume = .5; u.rate = .9;
+      if (frVoice) u.voice = frVoice; speechSynthesis.speak(u);
+    } catch (e) {}
+  },
+  'mime-start'() { SFX.go(); go('mimePlay'); },
+  'mime-found'(v) { S.R.found = +v; give(S.R.order[S.R.step], 1); give(+v, 1); SFX.yay(); buzz(80); go('mimeResult'); },
+  'mime-fail'() { S.R.found = null; SFX.buzzer(); go('mimeResult'); },
+  'mime-next'() { S.R.step++; if (S.R.step < S.players.length) go('mimePass'); else endRound(); },
+
+  'patate-go'() {
+    S.R.cat = draw('cat', CATS);
+    S.R.holder = 0;
+    S.R.fuse = 18000 + rnd(20000);
+    say(S.R.cat[1] + ' !');
+    go('patatePlay');
+  },
+  'patate-next'() {
+    S.R.booms++;
+    if (S.R.booms < 2) { S.R.order.push(S.R.order.shift()); go('patateReady'); }
+    else endRound();
+  },
+
+  'defi-next'() { SFX.boing(); S.R.step++; render(); },
+  'defi-vote'() { go('defiCount'); },
+  'defi-pick'(v) {
+    v = +v; const k = S.R.votes.indexOf(v);
+    k >= 0 ? S.R.votes.splice(k, 1) : S.R.votes.push(v);
+    SFX.pop(); render();
+  },
+  'defi-ok'() { if (!S.R.votes.length) return; S.R.votes.forEach(i => give(i, 2)); endRound(); },
+
+  'tape-ready'() { hush(); go('tapeCount'); },
+  'tape-next'() { S.R.step++; if (S.R.step < S.players.length) go('tapePass'); else finishTape(); },
+
+  'next-round'() {
+    S.round++;
+    if (S.round < S.plan.length) go('intro'); else go('drum');
+  },
+  again() { startGame(); },
+  home() { go('setup'); }
+};
+
+$app.addEventListener('click', e => {
+  const b = e.target.closest('[data-a]');
+  if (!b || b.disabled) return;
+  const fn = ACT[b.dataset.a];
+  if (fn) fn(b.dataset.v, b);
+});
+$app.addEventListener('input', e => {
+  const t = e.target;
+  if (t.matches('input[data-i]')) { S.players[+t.dataset.i].name = t.value.slice(0, 16); save(); }
+});
+
+/* ---------- Le bouton prout ---------- */
+const prout = document.getElementById('prout');
+prout.addEventListener('click', () => {
+  SFX.fart(); buzz([40, 30, 60]);
+  prout.classList.remove('puff'); void prout.offsetWidth; prout.classList.add('puff');
+  const c = document.createElement('div'); c.className = 'cloud'; c.textContent = '💨';
+  const r = prout.getBoundingClientRect();
+  c.style.left = (r.left - 10) + 'px'; c.style.top = (r.top - 10) + 'px';
+  document.body.appendChild(c); setTimeout(() => c.remove(), 1200);
+});
+
+load();
+render();
+})();
+</script>
+</body>
+</html>
