@@ -126,6 +126,20 @@ details.rules summary { font-family: var(--font-display); font-weight: 600; font
 .rules h3 { font-size: 1rem; margin-top: 14px; }
 .rules p { margin: 6px 0; }
 
+/* Board */
+.board-wrap { display: flex; overflow: auto; max-height: 60vh; min-height: 160px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); -webkit-overflow-scrolling: touch; }
+.board-wrap svg { margin: auto; flex: none; display: block; }
+.board-wrap .bt { fill: var(--tile); stroke: var(--tile-edge); stroke-width: 2; stroke-linejoin: round; }
+.board-wrap .bt.last { stroke: var(--gold); stroke-width: 3; }
+.board-wrap .bt.preview { fill: var(--accent); stroke: var(--accent); fill-opacity: .25; stroke-width: 3; }
+.board-wrap .cand { fill: var(--surface); fill-opacity: .6; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 4; cursor: pointer; }
+.board-wrap .cand:hover { fill: var(--accent); fill-opacity: .15; }
+.board-wrap text { font-family: var(--font-display); font-weight: 700; font-size: 15px; fill: var(--fg); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.board-wrap .empty-msg { font-family: var(--font-body); font-weight: 600; font-size: 14px; fill: var(--muted); }
+.detect { display: flex; gap: 6px; flex-wrap: wrap; }
+.detect span { background: var(--gold); color: #1d1608; border-radius: 999px; padding: 4px 10px; font-weight: 700; font-size: .85rem; }
+.board-tools { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+
 .banner { background: var(--gold); color: #1d1608; border-radius: var(--radius); padding: 14px 16px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 @media (prefers-reduced-motion: no-preference) { .bar > i { transition: width .3s ease; } }
@@ -144,8 +158,10 @@ details.rules summary { font-family: var(--font-display); font-weight: 600; font
   ];
 
   let game = load();
+  if (game) { game.board = game.board || {}; game.mode = game.mode || "board"; }
   // Turn draft (not saved)
   let draft = freshDraft();
+  let centerOn = game && game.lastCell ? game.lastCell : null;
   let view = "turn";        // turn | end
   let endMode = "out";       // out | blocked
   let endWho = null;
@@ -154,7 +170,92 @@ details.rules summary { font-family: var(--font-display); font-weight: 600; font
   let setupNames = ["Joueur 1", "Joueur 2", "Joueur 3"];
   let setupTarget = 400;
 
-  function freshDraft() { return { nums: [], draws: 0, bonus: {} }; }
+  function freshDraft() { return { nums: [], draws: 0, bonus: {}, cell: null, rot: 0 }; }
+
+  // ---------- Board geometry ----------
+  // Cell (r, c) is a triangle; it points up when r + c is even.
+  // Vertices live on a lattice (vx, vy): pixel x = vx * SIDE / 2, y = vy * HGT.
+  const SIDE = 64, HGT = SIDE * Math.sqrt(3) / 2;
+  const K = (r, c) => r + "," + c;
+  const isUp = (r, c) => ((r + c) % 2 + 2) % 2 === 0;
+  // Vertices in clockwise order (as the numbers are read on a real tile).
+  function verts(r, c) { return isUp(r, c) ? [[c + 1, r], [c + 2, r + 1], [c, r + 1]] : [[c, r], [c + 2, r], [c + 1, r + 1]]; }
+  function nbrs(r, c) { return isUp(r, c) ? [[r, c - 1], [r, c + 1], [r + 1, c]] : [[r, c - 1], [r, c + 1], [r - 1, c]]; }
+  const sameV = (a, b) => a[0] === b[0] && a[1] === b[1];
+  function around(vx, vy) {
+    const out = [];
+    for (const r of [vy - 1, vy]) for (let c = vx - 2; c <= vx; c++) if (verts(r, c).some(v => sameV(v, [vx, vy]))) out.push([r, c]);
+    return out;
+  }
+  function valAt(board, r, c, v) {
+    const t = board[K(r, c)];
+    if (!t) return undefined;
+    return t[verts(r, c).findIndex(w => sameV(w, v))];
+  }
+  function fits(board, r, c, vals) {
+    const vs = verts(r, c);
+    for (let i = 0; i < 3; i++) for (const [rr, cc] of around(...vs[i])) {
+      if (rr === r && cc === c) continue;
+      const x = valAt(board, rr, cc, vs[i]);
+      if (x !== undefined && x !== vals[i]) return false;
+    }
+    return true;
+  }
+  function options(board, r, c, nums) {
+    if (board[K(r, c)]) return [];
+    const empty = !Object.keys(board).length;
+    if (!empty && !nbrs(r, c).some(([a, b]) => board[K(a, b)])) return [];
+    const seen = new Set(), out = [];
+    for (let k = 0; k < 3; k++) {
+      const vals = [nums[k], nums[(k + 1) % 3], nums[(k + 2) % 3]];
+      if (seen.has(vals.join())) continue;
+      seen.add(vals.join());
+      if (fits(board, r, c, vals)) out.push(vals);
+    }
+    return out;
+  }
+  function candidates(board, nums) {
+    const keys = Object.keys(board);
+    if (!keys.length) return [[0, 0]];
+    const set = new Map();
+    for (const k of keys) {
+      const [r, c] = k.split(",").map(Number);
+      for (const [a, b] of nbrs(r, c)) if (!board[K(a, b)]) set.set(K(a, b), [a, b]);
+    }
+    return [...set.values()].filter(([r, c]) => options(board, r, c, nums).length);
+  }
+  function analyse(board, r, c, vals) {
+    const after = { ...board, [K(r, c)]: vals };
+    const vs = verts(r, c);
+    let hex = 0;
+    for (const v of vs) if (around(...v).every(([a, b]) => after[K(a, b)])) hex++;
+    const shared = nbrs(r, c).filter(([a, b]) => board[K(a, b)]);
+    let bridge = false;
+    if (shared.length === 1) {
+      const nv = verts(...shared[0]);
+      const opp = vs.find(v => !nv.some(w => sameV(v, w)));
+      bridge = around(...opp).some(([a, b]) => !(a === r && b === c) && board[K(a, b)]);
+    }
+    return { hex, bridge };
+  }
+  function boardPick() {
+    if (!game || game.mode !== "board" || !draft.cell || draft.nums.length !== 3) return null;
+    const [r, c] = draft.cell.split(",").map(Number);
+    const opts = options(game.board, r, c, draft.nums);
+    if (!opts.length) return null;
+    const vals = opts[draft.rot % opts.length];
+    const a = analyse(game.board, r, c, vals);
+    const bonus = { pont: a.bridge };
+    if (a.hex) bonus["hex" + Math.min(3, a.hex)] = true;
+    return { r, c, vals, opts, a, bonus };
+  }
+  function effDraft() {
+    if (game.mode !== "board") return draft;
+    const p = boardPick();
+    return { ...draft, bonus: p ? p.bonus : {} };
+  }
+  const px = v => [v[0] * SIDE / 2, v[1] * HGT];
+  function centroid(r, c) { const p = verts(r, c).map(px); return [(p[0][0] + p[1][0] + p[2][0]) / 3, (p[0][1] + p[1][1] + p[2][1]) / 3]; }
 
   function load() {
     try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; }
@@ -200,11 +301,14 @@ details.rules summary { font-family: var(--font-display); font-weight: 600; font
     start() {
       const names = setupNames.map(n => n.trim()).filter(Boolean);
       if (names.length < 2) return;
-      game = { players: names.map(n => ({ name: n, score: 0 })), target: Math.max(50, +setupTarget || 400), cur: 0, round: 1, first: true, last: null, log: [], undo: [] };
+      game = { players: names.map(n => ({ name: n, score: 0 })), target: Math.max(50, +setupTarget || 400), cur: 0, round: 1, first: true, last: null, log: [], undo: [], board: {}, mode: "board", lastCell: null };
       draft = freshDraft(); view = "turn";
     },
-    key(n) { if (draft.nums.length < 3) draft.nums.push(n); },
-    erase() { draft.nums.pop(); },
+    key(n) { if (draft.nums.length < 3) { draft.nums.push(n); draft.cell = null; draft.rot = 0; } },
+    erase() { draft.nums.pop(); draft.cell = null; draft.rot = 0; },
+    cell(k) { draft.cell = draft.cell === k ? draft.cell : k; draft.rot = 0; centerOn = k; },
+    rotate() { draft.rot += 1; },
+    mode(m) { game.mode = m; draft.cell = null; draft.bonus = {}; },
     draws(n) { draft.draws = n; },
     bonus(id) {
       const h = HEX.find(x => x.id === id);
@@ -214,8 +318,11 @@ details.rules summary { font-family: var(--font-display); font-weight: 600; font
     },
     play() {
       if (draft.nums.length !== 3) return;
-      const s = tileScore(draft, game.first);
+      const pick = boardPick();
+      if (game.mode === "board" && !pick) return;
+      const s = tileScore(effDraft(), game.first);
       snapshot();
+      if (pick) { game.board[K(pick.r, pick.c)] = pick.vals; game.lastCell = K(pick.r, pick.c); centerOn = game.lastCell; }
       addScore(game.cur, s.total, s.parts.join(", "));
       game.first = false; game.last = game.cur;
       nextPlayer(); draft = freshDraft();
@@ -246,7 +353,7 @@ details.rules summary { font-family: var(--font-display); font-weight: 600; font
         const gain = others - r(best);
         addScore(best, gain, `manche bloquée : tuiles des adversaires ${others} − ses tuiles ${r(best)}`);
       }
-      game.round += 1; game.first = true; game.last = null;
+      game.round += 1; game.first = true; game.last = null; game.board = {}; game.lastCell = null;
       view = "turn"; draft = freshDraft();
     },
     undo() { if (game.undo.length) { const prev = game.undo.pop(); const stack = game.undo; game = prev; game.undo = stack; draft = freshDraft(); view = "turn"; } },
@@ -296,6 +403,8 @@ details.rules summary { font-family: var(--font-display); font-weight: 600; font
       </table>
       <p>On joue plusieurs manches. Le premier à atteindre <b>${game ? game.target : 400} points</b> gagne la partie.</p>
       <p class="small muted">Ordre conseillé : saisis d'abord la dernière tuile posée comme un coup normal, puis appuie sur « Fin de manche ».</p>
+      <h3>Le mode « Avec plateau »</h3>
+      <p>Tu reproduis la table dans l'appli : saisis les 3 chiffres de la tuile dans le sens des aiguilles d'une montre, puis touche l'endroit où elle a été posée. L'appli vérifie que les chiffres se touchent bien et repère seule les ponts et les hexagones. Si les chiffres apparaissent dans le mauvais sens, appuie sur « Tourner la tuile ». Le plateau se vide à chaque nouvelle manche.</p>
     </details>`;
   }
 
@@ -335,11 +444,18 @@ details.rules summary { font-family: var(--font-display); font-weight: 600; font
 
   function turnHTML() {
     const p = game.players[game.cur];
-    const s = tileScore(draft, game.first);
+    const onBoard = game.mode === "board";
+    const pick = boardPick();
+    const s = tileScore(effDraft(), game.first);
     const triple = draft.nums.length === 3 && draft.nums[0] === draft.nums[1] && draft.nums[1] === draft.nums[2];
+    const canPlay = draft.nums.length === 3 && (!onBoard || pick);
     return `<section class="panel" aria-label="Tour en cours">
       <div class="turn-head"><h2>Au tour de ${esc(p.name)}</h2><span class="muted small">Manche ${game.round}${game.first ? " · premier coup" : ""}</span></div>
-      <div class="field-label">Touche les 3 chiffres de la tuile posée</div>
+      <div class="seg">
+        <button class="chip" data-a="mode" data-v="board" aria-pressed="${onBoard}">Avec plateau</button>
+        <button class="chip" data-a="mode" data-v="manual" aria-pressed="${!onBoard}">Saisie rapide</button>
+      </div>
+      <div class="field-label">${onBoard ? "Touche les 3 chiffres de la tuile, dans le sens des aiguilles d'une montre" : "Touche les 3 chiffres de la tuile posée"}</div>
       <div class="tile-zone">
         ${tileSVG(draft.nums)}
         <div class="keypad">
@@ -348,10 +464,10 @@ details.rules summary { font-family: var(--font-display); font-weight: 600; font
         </div>
       </div>
       ${game.first && triple ? `<div class="bonus-note">Premier coup avec un triple : +${draft.nums[0] === 0 ? 40 : 10} de bonus</div>` : ""}
-      <div>
+      ${onBoard ? boardSectionHTML(pick) : `<div>
         <div class="field-label">Bonus de figure (si ta tuile en a fait une)</div>
         <div class="seg" style="margin-top:6px">${HEX.map(h => `<button class="chip" data-a="bonus" data-v="${h.id}" aria-pressed="${!!draft.bonus[h.id]}">${h.label} +${h.pts}</button>`).join("")}</div>
-      </div>
+      </div>`}
       <div>
         <div class="field-label">Tuiles piochées avant de poser</div>
         <div class="seg" style="margin-top:6px">${[0, 1, 2, 3].map(n => `<button class="chip" data-a="draws" data-v="${n}" aria-pressed="${draft.draws === n}">${n === 0 ? "Aucune" : n + " (−" + 5 * n + ")"}</button>`).join("")}</div>
@@ -360,13 +476,67 @@ details.rules summary { font-family: var(--font-display); font-weight: 600; font
         <div><div class="field-label">${esc(p.name)} marque</div><div class="breakdown">${s.parts.length ? esc(s.parts.join(" · ")) : "Saisis la tuile"}</div></div>
         <div class="val num ${s.total < 0 ? "neg" : ""}">${draft.nums.length === 3 ? signed(s.total) : "…"}</div>
       </div>
-      <button class="btn btn-primary btn-big" data-a="play" ${draft.nums.length === 3 ? "" : "disabled"}>Valider le coup</button>
+      <button class="btn btn-primary btn-big" data-a="play" ${canPlay ? "" : "disabled"}>${onBoard && draft.nums.length === 3 && !pick ? "Choisis où poser la tuile" : "Valider le coup"}</button>
       <div class="row-actions">
         <button class="btn" data-a="pass">Bloqué après 3 pioches (−25)</button>
         <button class="btn" data-a="openEnd">Fin de manche</button>
       </div>
     </section>`;
   }
+
+  function boardSectionHTML(pick) {
+    const board = game.board;
+    const nums = draft.nums;
+    const occupied = Object.keys(board).map(k => k.split(",").map(Number));
+    const cands = nums.length === 3 ? candidates(board, nums) : [];
+    const cells = occupied.concat(cands);
+    let hint;
+    if (nums.length < 3) hint = occupied.length ? "Saisis la tuile : les places possibles apparaîtront en pointillés." : "Saisis la première tuile de la manche pour la poser.";
+    else if (!cands.length) hint = "Cette tuile ne rentre nulle part. Vérifie les chiffres et leur ordre, ou pioche.";
+    else if (!pick) hint = "Touche l'emplacement en pointillés où tu as posé la tuile.";
+    else hint = pick.opts.length > 1 ? "Si les chiffres ne sont pas dans le bon sens, appuie sur « Tourner »." : "Vérifie que le plateau ressemble à la table, puis valide.";
+
+    let svg;
+    if (!cells.length) {
+      svg = `<svg width="260" height="120" viewBox="0 0 260 120" aria-hidden="true"><text class="empty-msg" x="130" y="60">Le plateau est vide</text></svg>`;
+    } else {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const [r, c] of cells) for (const v of verts(r, c)) {
+        const [x, y] = px(v);
+        minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+      }
+      const m = SIDE * 0.75;
+      minX -= m; minY -= m; maxX += m; maxY += m;
+      const poly = (r, c) => verts(r, c).map(v => px(v).map(n => n.toFixed(1)).join(",")).join(" ");
+      const labels = (r, c, vals) => {
+        const [cx, cy] = centroid(r, c);
+        return verts(r, c).map((v, i) => {
+          const [x, y] = px(v);
+          return `<text x="${(cx + (x - cx) * 0.58).toFixed(1)}" y="${(cy + (y - cy) * 0.58).toFixed(1)}">${vals[i]}</text>`;
+        }).join("");
+      };
+      let out = "";
+      for (const [r, c] of occupied) out += `<polygon class="bt ${K(r, c) === game.lastCell ? "last" : ""}" points="${poly(r, c)}"/>${labels(r, c, board[K(r, c)])}`;
+      for (const [r, c] of cands) {
+        if (pick && pick.r === r && pick.c === c) continue;
+        out += `<polygon class="cand" data-a="cell" data-v="${K(r, c)}" points="${poly(r, c)}"><title>Poser ici</title></polygon>`;
+      }
+      if (pick) out += `<polygon class="bt preview" data-a="rotate" points="${poly(pick.r, pick.c)}"/>${labels(pick.r, pick.c, pick.vals)}`;
+      const w = maxX - minX, h = maxY - minY;
+      svg = `<svg width="${w.toFixed(0)}" height="${h.toFixed(0)}" viewBox="${minX.toFixed(1)} ${minY.toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}" role="img" aria-label="Plateau de jeu">${out}</svg>`;
+      boardOrigin = [minX, minY];
+    }
+    const found = [];
+    if (pick && pick.a.bridge) found.push("Pont +40");
+    if (pick && pick.a.hex) found.push(HEX.find(h => h.id === "hex" + Math.min(3, pick.a.hex)).label + " +" + HEX.find(h => h.id === "hex" + Math.min(3, pick.a.hex)).pts);
+    return `<div style="display:flex;flex-direction:column;gap:8px">
+      <div class="board-tools"><div class="field-label">Plateau</div>${pick && pick.opts.length > 1 ? `<button class="btn" data-a="rotate">Tourner la tuile</button>` : ""}</div>
+      <div class="board-wrap" id="board-wrap">${svg}</div>
+      <div class="hint">${hint}</div>
+      ${found.length ? `<div class="detect" aria-live="polite">${found.map(f => `<span>${f} détecté</span>`).join("")}</div>` : ""}
+    </div>`;
+  }
+  let boardOrigin = [0, 0];
 
   function endHTML() {
     const pl = game.players;
@@ -428,8 +598,23 @@ details.rules summary { font-family: var(--font-display); font-weight: 600; font
   const app = document.getElementById("app");
   function render() {
     const open = document.getElementById("rules")?.open;
+    const w0 = document.getElementById("board-wrap");
+    const prev = w0 ? { l: w0.scrollLeft, t: w0.scrollTop, o: boardOrigin.slice() } : null;
     app.innerHTML = game ? gameHTML() : setupHTML();
     if (open) document.getElementById("rules").open = true;
+    const w = document.getElementById("board-wrap");
+    if (w) {
+      if (centerOn) {
+        const [r, c] = centerOn.split(",").map(Number);
+        const [x, y] = centroid(r, c);
+        w.scrollLeft = x - boardOrigin[0] - w.clientWidth / 2;
+        w.scrollTop = y - boardOrigin[1] - w.clientHeight / 2;
+        centerOn = null;
+      } else if (prev) {
+        w.scrollLeft = prev.l + (prev.o[0] - boardOrigin[0]);
+        w.scrollTop = prev.t + (prev.o[1] - boardOrigin[1]);
+      }
+    }
   }
 
   app.addEventListener("click", e => {
