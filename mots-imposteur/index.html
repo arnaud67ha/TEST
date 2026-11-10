@@ -15,6 +15,8 @@
   --accent: #e2405f;      /* imposteur / actions */
   --accent-fg: #ffffff;
   --mint: #138f78;        /* civils */
+  --gold: #a86a00;
+  --blue: #3559c7;
   --line: #cfc6e3;
   --card-back: #2b2350;
   --card-back-2: #3b3170;
@@ -25,14 +27,14 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #14112a; --surface: #211c40; --surface-2: #2d2654; --fg: #eeeaf9; --muted: #a59dc6;
-    --accent: #ff6684; --accent-fg: #1a0710; --mint: #4fd1b5; --line: #3a3266;
+    --accent: #ff6684; --accent-fg: #1a0710; --mint: #4fd1b5; --gold: #f2b84b; --blue: #8fa8ff; --line: #3a3266;
     --card-back: #382e72; --card-back-2: #4a3e92; --shadow: 0 0.6rem 1.6rem rgb(0 0 0 / 0.4);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #14112a; --surface: #211c40; --surface-2: #2d2654; --fg: #eeeaf9; --muted: #a59dc6;
-  --accent: #ff6684; --accent-fg: #1a0710; --mint: #4fd1b5; --line: #3a3266;
+  --accent: #ff6684; --accent-fg: #1a0710; --mint: #4fd1b5; --gold: #f2b84b; --blue: #8fa8ff; --line: #3a3266;
   --card-back: #382e72; --card-back-2: #4a3e92; --shadow: 0 0.6rem 1.6rem rgb(0 0 0 / 0.4);
   color-scheme: dark;
 }
@@ -157,6 +159,24 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
 .tag.civ { background: var(--mint); color: var(--bg); }
 .gain { color: var(--mint); font-weight: 800; font-variant-numeric: tabular-nums; }
 
+/* Pouvoirs */
+.pw { display: inline-block; white-space: nowrap; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.03em; padding: 0.15rem 0.55rem; border-radius: 999px; border: 2px solid currentColor; }
+.pw-def { color: var(--mint); }
+.pw-atk { color: var(--accent); }
+.pw-vote { color: var(--gold); }
+.pw-info { color: var(--blue); }
+.pw-talk { color: var(--muted); }
+.pw-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.55rem; }
+.pw-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.6rem; font-size: 0.92rem; }
+.pw-list li > span:nth-child(2) { flex: 1; min-width: 12rem; color: var(--muted); }
+.pw-list li b { color: var(--fg); }
+.pw-act { width: 100%; }
+details > ul.pw-list { margin-top: 0.75rem; }
+.order li .nm { min-width: 0; overflow-wrap: anywhere; }
+.vote-grid button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; }
+.vote-grid button[disabled] { opacity: 0.5; cursor: not-allowed; }
+.vote-grid button small { font-size: 0.72rem; font-weight: 800; color: var(--mint); text-transform: uppercase; letter-spacing: 0.06em; }
+
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
 .topbar .label { white-space: nowrap; }
 .confirm { display: flex; flex-direction: column; gap: 0.6rem; background: var(--surface); border: 2px solid var(--accent); border-radius: 1rem; padding: 0.9rem; }
@@ -225,11 +245,27 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
   };
   const CATS = Object.keys(WORDS);
 
+  // ---------- Pouvoirs (tirés au sort à chaque tour, annoncés à tous) ----------
+  const POWERS = [
+    { id: "shield",    name: "Bouclier",        kind: "def",  desc: "Ne peut pas être éliminé à ce tour." },
+    { id: "double",    name: "Double voix",     kind: "vote", desc: "Son vote compte double." },
+    { id: "judge",     name: "Juge",            kind: "vote", desc: "Tranche seul en cas d'égalité au vote." },
+    { id: "grace",     name: "Grâce",           kind: "def",  desc: "Après le vote, peut annuler l'élimination d'un autre joueur." },
+    { id: "vengeance", name: "Vengeance",       kind: "atk",  desc: "S'il est éliminé à ce tour, il emporte aussitôt un autre joueur avec lui." },
+    { id: "compare",   name: "Détecteur",       kind: "info", desc: "Choisit deux joueurs et apprend en secret s'ils ont le même mot." },
+    { id: "conductor", name: "Chef d'orchestre", kind: "info", desc: "Peut inverser l'ordre de parole avant que le tour commence." },
+    { id: "last",      name: "Dernier mot",     kind: "info", desc: "Parle toujours en dernier : il a entendu tous les indices." },
+    { id: "chatty",    name: "Bavard",          kind: "talk", desc: "Peut donner deux mots au lieu d'un." },
+    { id: "mime",      name: "Mime",            kind: "talk", desc: "Malus : doit mimer son indice, sans parler." },
+    { id: "interro",   name: "Interrogateur",   kind: "talk", desc: "Peut poser une question fermée (oui / non) à un joueur, qui doit répondre." }
+  ];
+  const PW = Object.fromEntries(POWERS.map(p => [p.id, p]));
+
   // ---------- Stockage local (confort : se souvenir des joueurs) ----------
   const KEY = "mot-de-trop-v1";
   function load() { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch { return null; } }
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify({ players: S.players, impostors: S.impostors, cats: S.cats, used: S.used })); } catch {}
+    try { localStorage.setItem(KEY, JSON.stringify({ players: S.players, impostors: S.impostors, cats: S.cats, used: S.used, powers: S.powersPerRound })); } catch {}
   }
 
   const saved = load() || {};
@@ -241,6 +277,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
     impostors: saved.impostors || 1,
     cats: saved.cats && saved.cats.length ? saved.cats : CATS.slice(),
     used: saved.used || [],
+    powersPerRound: saved.powers ?? 2,
     screen: "setup",
     game: null,
     ui: {}
@@ -285,16 +322,40 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
   }
   function newRoundOrder() {
     const g = S.game;
+    // Pouvoirs : k joueurs vivants au hasard reçoivent chacun un pouvoir différent
+    const k = Math.min(S.powersPerRound, g.alive.length);
+    const holders = shuffle(g.alive).slice(0, k), pws = shuffle(POWERS.map(p => p.id)).slice(0, k);
+    g.powers = {}; g.pwUsed = {};
+    holders.forEach((id, i) => g.powers[id] = pws[i]);
     // L'ordre de parole tourne autour de la table à partir d'un joueur vivant au hasard
     const table = S.players.map(p => p.id).filter(id => g.alive.includes(id));
     const start = Math.floor(Math.random() * table.length);
-    g.order = table.slice(start).concat(table.slice(0, start));
+    g.order = fixOrder(table.slice(start).concat(table.slice(0, start)));
+  }
+  function fixOrder(order) {
+    const last = holderOf("last");
+    return last != null ? order.filter(id => id !== last).concat(last) : order;
+  }
+  function holderOf(pw) {
+    const g = S.game, e = Object.entries(g.powers || {}).find(([id, p]) => p === pw && g.alive.includes(+id));
+    return e ? +e[0] : null;
   }
   function wordOf(id) { const g = S.game; return g.roles[id] === "imp" ? g.pair.imp : g.pair.civ; }
-  function eliminate(id) {
+  function eliminate(id, chained) {
     const g = S.game;
     g.alive = g.alive.filter(x => x !== id);
     g.log.push({ id, round: g.round, role: g.roles[id] });
+    const outs = (chained ? S.ui.outs : []).concat(id);
+    if (!chained && g.powers[id] === "vengeance" && g.alive.length > 1) {
+      S.ui = { outs, revenger: id };
+      return go("revenge");
+    }
+    S.ui = { outs };
+    checkWin();
+    go("verdict");
+  }
+  function checkWin() {
+    const g = S.game;
     const impLeft = g.alive.filter(x => g.roles[x] === "imp").length;
     const civLeft = g.alive.length - impLeft;
     if (impLeft === 0) g.winner = "civ";
@@ -309,16 +370,18 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
       });
       save();
     }
-    S.ui = { lastOut: id };
-    go("verdict");
   }
+  const pwChip = id => {
+    const p = S.game && S.game.powers && S.game.powers[id];
+    return p ? `<span class="pw pw-${PW[p].kind}">${esc(PW[p].name)}</span>` : "";
+  };
 
   // ---------- Rendu ----------
   const app = $("#app");
   function go(screen) { S.screen = screen; render(); window.scrollTo(0, 0); }
 
   function render() {
-    const fn = { setup: viewSetup, deal: viewDeal, table: viewTable, peek: viewPeek, vote: viewVote, verdict: viewVerdict, end: viewEnd }[S.screen];
+    const fn = { setup: viewSetup, deal: viewDeal, table: viewTable, peek: viewPeek, vote: viewVote, verdict: viewVerdict, end: viewEnd, revenge: viewRevenge, compare: viewCompare }[S.screen];
     app.innerHTML = fn();
     bind[S.screen] && bind[S.screen]();
   }
@@ -360,6 +423,20 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
         </div>
       </section>
 
+      <section class="panel" aria-labelledby="pwl">
+        <span class="label" id="pwl">Pouvoirs par tour</span>
+        <div class="stepper">
+          <button class="icon-btn" id="pw-minus" aria-label="Un pouvoir de moins" ${S.powersPerRound <= 0 ? "disabled" : ""}>−</button>
+          <output id="pw-count">${S.powersPerRound}</output>
+          <button class="icon-btn" id="pw-plus" aria-label="Un pouvoir de plus" ${S.powersPerRound >= Math.min(4, n) ? "disabled" : ""}>+</button>
+          <span class="hint">${S.powersPerRound ? "tirés au sort à chaque tour" : "sans pouvoirs"}</span>
+        </div>
+        <details>
+          <summary class="hint" style="cursor:pointer">Voir les ${POWERS.length} pouvoirs</summary>
+          <ul class="pw-list">${POWERS.map(p => `<li><span class="pw pw-${p.kind}">${esc(p.name)}</span><span>${esc(p.desc)}</span></li>`).join("")}</ul>
+        </details>
+      </section>
+
       <section class="panel" aria-labelledby="th">
         <div class="topbar"><span class="label" id="th">Thèmes</span>
           <button class="btn ghost small" id="all-cats">${S.cats.length === CATS.length ? "Aucun" : "Tous"}</button>
@@ -377,6 +454,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
         <ol class="rules">
           <li>Chacun regarde son mot en secret, puis passe le téléphone.</li>
           <li>Chacun son tour, dites <b>un seul mot</b> qui évoque le vôtre. Trop précis, l'imposteur devine. Trop vague, on vous soupçonne.</li>
+          <li>À chaque tour, des <b>pouvoirs</b> sont tirés au sort et annoncés à tous. Civils comme imposteurs peuvent en recevoir.</li>
           <li>Après chaque tour, débattez puis <b>votez</b> pour éliminer quelqu'un. Son rôle est révélé.</li>
           <li>Les civils gagnent s'ils éliminent tous les imposteurs. Les imposteurs gagnent s'ils sont aussi nombreux que les civils.</li>
           <li>Points : civils gagnants +2 chacun. Imposteur gagnant +6 s'il est encore en jeu, +3 sinon.</li>
@@ -398,12 +476,32 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
         <button class="btn block" id="next" ${S.ui.seen ? "" : "disabled"}>${last ? "Tout le monde a vu : on joue" : "J'ai vu mon mot, au suivant"}</button>
       </section>`;
   }
-  function cardHTML(word) {
+  function cardHTML(word, label = "Ton mot") {
     return `
-      <div class="card" id="card" role="button" tabindex="0" aria-label="Maintenir appuyé pour voir le mot">
+      <div class="card" id="card" role="button" tabindex="0" aria-label="Maintenir appuyé pour voir">
         <div class="face back"><div class="seal">?</div><span class="how">Maintiens appuyé</span></div>
-        <div class="face front"><span class="label">Ton mot</span><span class="word">${esc(word)}</span></div>
+        <div class="face front"><span class="label">${esc(label)}</span><span class="word">${esc(word)}</span></div>
       </div>`;
+  }
+
+  function powersPanel() {
+    const g = S.game;
+    const list = g.order.filter(id => g.powers[id]);
+    if (!list.length) return "";
+    return `
+      <section class="panel" aria-labelledby="pwt">
+        <span class="label" id="pwt">Pouvoirs du tour</span>
+        <ul class="pw-list">
+          ${list.map(id => {
+            const p = PW[g.powers[id]], used = g.pwUsed[id];
+            let action = "";
+            if (p.id === "compare") action = used ? `<span class="hint">Utilisé</span>` : `<button class="btn small" data-compare="${id}">Utiliser en secret</button>`;
+            if (p.id === "conductor") action = used ? `<span class="hint">Ordre inversé</span>` : `<button class="btn small" data-reverse="${id}">Inverser l'ordre</button>`;
+            return `<li><span class="pw pw-${p.kind}">${esc(p.name)}</span>
+              <span><b>${esc(byId(id).name)}</b> · ${esc(p.desc)}</span>${action ? `<span class="pw-act">${action}</span>` : ""}</li>`;
+          }).join("")}
+        </ul>
+      </section>`;
   }
 
   function viewTable() {
@@ -414,9 +512,10 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
       <h2>À vous de parler</h2>
       <p class="lede">Un mot chacun, dans cet ordre. Puis débattez et votez.</p>
       <ol class="order">
-        ${g.order.map((id, i) => `<li>${esc(byId(id).name)}${i === 0 ? `<span class="first">commence</span>` : ""}</li>`).join("")}
-        ${g.log.map(e => `<li class="out">${esc(byId(e.id).name)}</li>`).join("")}
+        ${g.order.map((id, i) => `<li><span class="nm">${esc(byId(id).name)}</span>${pwChip(id)}${i === 0 ? `<span class="first">commence</span>` : ""}</li>`).join("")}
+        ${g.log.map(e => `<li class="out"><span class="nm">${esc(byId(e.id).name)}</span></li>`).join("")}
       </ol>
+      ${powersPanel()}
       <button class="btn block" id="to-vote">Passer au vote</button>
       <button class="btn ghost block" id="to-peek">Revoir mon mot</button>
       <p class="hint">Thème : ${esc(g.pair.cat)} · ${S.impostors} imposteur${S.impostors > 1 ? "s" : ""} dans la partie</p>`;
@@ -441,29 +540,84 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
 
   function viewVote() {
     const g = S.game, sel = S.ui.voteId;
+    const shield = holderOf("shield"), dbl = holderOf("double"), judge = holderOf("judge");
+    const grace = holderOf("grace");
+    const notes = [];
+    if (dbl != null) notes.push(`la voix de <b>${esc(byId(dbl).name)}</b> compte double`);
+    if (judge != null) notes.push(`en cas d'égalité, <b>${esc(byId(judge).name)}</b> tranche`);
     return `
       <div class="topbar"><span class="label">Vote · tour ${g.round}</span><button class="btn ghost small" id="back">Retour</button></div>
       <h2>Qui éliminez-vous ?</h2>
-      <p class="lede">Comptez les voix à main levée. En cas d'égalité, revotez entre les ex æquo.</p>
+      <p class="lede">Comptez les voix à main levée. ${notes.length ? "Ce tour-ci, " + notes.join(" et ") + "." : "En cas d'égalité, revotez entre les ex æquo."}</p>
       <div class="vote-grid">
-        ${g.order.map(id => `<button data-vote="${id}" aria-pressed="${sel === id}">${esc(byId(id).name)}</button>`).join("")}
+        ${g.order.map(id => id === shield
+          ? `<button disabled aria-disabled="true" class="shielded">${esc(byId(id).name)}<small>Bouclier</small></button>`
+          : `<button data-vote="${id}" aria-pressed="${sel === id}">${esc(byId(id).name)}${pwChip(id)}</button>`).join("")}
       </div>
       ${sel != null ? `
         <div class="confirm">
-          <p><b>${esc(byId(sel).name)}</b> est éliminé et son rôle sera révélé.</p>
+          <p><b>${esc(byId(sel).name)}</b> est éliminé et son rôle sera révélé.${g.powers[sel] === "vengeance" ? " Attention, il a la <b>Vengeance</b>." : ""}</p>
           <div class="row"><button class="btn" id="confirm-vote">Éliminer</button><button class="btn ghost" id="cancel-vote">Annuler</button></div>
+          ${grace != null && grace !== sel && !g.pwUsed[grace] ? `
+            <button class="btn ghost block" id="use-grace">${esc(byId(grace).name)} utilise sa Grâce</button>` : ""}
         </div>` : ""}`;
   }
 
-  function viewVerdict() {
-    const g = S.game, id = S.ui.lastOut, imp = g.roles[id] === "imp";
-    const impLeft = g.alive.filter(x => g.roles[x] === "imp").length;
+  function viewRevenge() {
+    const g = S.game, r = S.ui.revenger, imp = g.roles[r] === "imp", sel = S.ui.target;
     return `
       <section class="verdict">
-        <p class="label">${esc(byId(id).name)} était…</p>
-        <h2>${imp ? "un imposteur !" : "un civil."}</h2>
+        <p class="label">${esc(byId(r).name)} était…</p>
         <span class="badge ${imp ? "imp" : "civ"}">${imp ? "Imposteur" : "Civil"}</span>
+        <h2>Vengeance !</h2>
+        <p class="lede">${esc(byId(r).name)} choisit qui il emporte avec lui.</p>
       </section>
+      <div class="vote-grid">
+        ${g.order.filter(id => g.alive.includes(id)).map(id => `<button data-target="${id}" aria-pressed="${sel === id}">${esc(byId(id).name)}</button>`).join("")}
+      </div>
+      ${sel != null ? `<button class="btn block" id="confirm-revenge">Emporter ${esc(byId(sel).name)}</button>` : ""}`;
+  }
+
+  function viewCompare() {
+    const g = S.game, by = S.ui.cmpBy, picks = S.ui.picks;
+    if (picks.length < 2) {
+      return `
+        <div class="topbar"><span class="label">Détecteur</span><button class="btn ghost small" id="back">Retour</button></div>
+        <p class="label">Seul·e ${esc(byId(by).name)} regarde l'écran</p>
+        <h2>Choisis deux joueurs</h2>
+        <p class="lede">Tu sauras s'ils ont le même mot, sans savoir lequel.</p>
+        <div class="vote-grid">
+          ${g.order.map(id => `<button data-pick="${id}" aria-pressed="${picks.includes(id)}">${esc(byId(id).name)}</button>`).join("")}
+        </div>`;
+    }
+    const same = wordOf(picks[0]) === wordOf(picks[1]);
+    return `
+      <div class="topbar"><span class="label">Détecteur</span></div>
+      <section class="deal">
+        <p class="who">${esc(byId(picks[0]).name)} et ${esc(byId(picks[1]).name)}</p>
+        ${cardHTML(same ? "Même mot" : "Mots différents", "Résultat")}
+        <button class="btn block" id="cmp-done">C'est noté, on reprend</button>
+      </section>`;
+  }
+
+  function viewVerdict() {
+    const g = S.game;
+    const impLeft = g.alive.filter(x => g.roles[x] === "imp").length;
+    const top = S.ui.pardon
+      ? `<section class="verdict">
+          <p class="label">Grâce</p>
+          <h2>${esc(byId(S.ui.pardon.by).name)} sauve ${esc(byId(S.ui.pardon.target).name)}</h2>
+          <p class="lede">Personne n'est éliminé à ce tour.</p>
+        </section>`
+      : S.ui.outs.map(id => {
+          const imp = g.roles[id] === "imp";
+          return `<section class="verdict">
+            <p class="label">${esc(byId(id).name)} était…</p>
+            <h2>${imp ? "un imposteur !" : "un civil."}</h2>
+            <span class="badge ${imp ? "imp" : "civ"}">${imp ? "Imposteur" : "Civil"}</span>
+          </section>`;
+        }).join("");
+    return `${top}
       ${g.winner ? `<button class="btn block" id="to-end">Voir le résultat</button>` : `
         <p class="lede" style="text-align:center;margin-inline:auto">${impLeft} imposteur${impLeft > 1 ? "s" : ""} encore en jeu.</p>
         <button class="btn block" id="next-round">Tour suivant</button>`}`;
@@ -524,6 +678,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
       }));
       on("#imp-minus", () => { S.impostors = Math.max(1, S.impostors - 1); save(); render(); });
       on("#imp-plus", () => { S.impostors = Math.min(maxImpostors(S.players.length), S.impostors + 1); save(); render(); });
+      on("#pw-minus", () => { S.powersPerRound = Math.max(0, S.powersPerRound - 1); save(); render(); });
+      on("#pw-plus", () => { S.powersPerRound = Math.min(4, S.players.length, S.powersPerRound + 1); save(); render(); });
       app.querySelectorAll("[data-cat]").forEach(b => b.addEventListener("click", () => {
         const c = b.dataset.cat;
         S.cats = S.cats.includes(c) ? S.cats.filter(x => x !== c) : S.cats.concat(c);
@@ -546,6 +702,26 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
       quitBtn();
       on("#to-vote", () => { S.ui = {}; go("vote"); });
       on("#to-peek", () => { S.ui = {}; go("peek"); });
+      app.querySelectorAll("[data-reverse]").forEach(b => b.addEventListener("click", () => {
+        const g = S.game; g.order = fixOrder(g.order.slice().reverse()); g.pwUsed[+b.dataset.reverse] = true; render();
+      }));
+      app.querySelectorAll("[data-compare]").forEach(b => b.addEventListener("click", () => {
+        S.ui = { cmpBy: +b.dataset.compare, picks: [] }; go("compare");
+      }));
+    },
+    compare() {
+      on("#back", () => { S.ui = {}; go("table"); });
+      app.querySelectorAll("[data-pick]").forEach(b => b.addEventListener("click", () => {
+        const id = +b.dataset.pick, p = S.ui.picks;
+        S.ui.picks = p.includes(id) ? p.filter(x => x !== id) : p.concat(id);
+        render();
+      }));
+      bindCard();
+      on("#cmp-done", () => { S.game.pwUsed[S.ui.cmpBy] = true; S.ui = {}; go("table"); });
+    },
+    revenge() {
+      app.querySelectorAll("[data-target]").forEach(b => b.addEventListener("click", () => { S.ui.target = +b.dataset.target; render(); }));
+      on("#confirm-revenge", () => eliminate(S.ui.target, true));
     },
     peek() {
       app.querySelectorAll("[data-peek]").forEach(b => b.addEventListener("click", () => { S.ui.peekId = +b.dataset.peek; render(); }));
@@ -558,6 +734,10 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
       on("#back", () => { S.ui = {}; go("table"); });
       on("#cancel-vote", () => { S.ui = {}; render(); });
       on("#confirm-vote", () => eliminate(S.ui.voteId));
+      on("#use-grace", () => {
+        const by = holderOf("grace"); S.game.pwUsed[by] = true;
+        S.ui = { outs: [], pardon: { by, target: S.ui.voteId } }; go("verdict");
+      });
     },
     verdict() {
       on("#to-end", () => go("end"));
