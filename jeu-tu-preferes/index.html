@@ -24,6 +24,7 @@
   --lv-leger: #E0A100;
   --lv-complice: #D6457F;
   --lv-epice: #D2382C;
+  --lv-extreme: #6E0B2A;
   --font-display: "Unbounded", "Arial Black", system-ui, sans-serif;
   --font-body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
@@ -32,7 +33,7 @@
     --bg: #12131C; --surface: #1C1E2B; --ink: #F0F1F8; --muted: #9EA3BC; --line: #30334A;
     --opt-a: #FF8C42; --opt-a-soft: #3A2618; --opt-b: #8E88FF; --opt-b-soft: #25244A;
     --p1: #FF6B9A; --p1-soft: #3B1F2B; --p2: #3FD39E; --p2-soft: #163327;
-    --good: #3FD39E; --bad: #FF6A5E; --lv-leger: #F7C33C; --lv-complice: #FF77AA; --lv-epice: #FF6A5E;
+    --good: #3FD39E; --bad: #FF6A5E; --lv-leger: #F7C33C; --lv-complice: #FF77AA; --lv-epice: #FF6A5E; --lv-extreme: #FF3D6E;
     color-scheme: dark;
   }
 }
@@ -40,7 +41,7 @@
   --bg: #12131C; --surface: #1C1E2B; --ink: #F0F1F8; --muted: #9EA3BC; --line: #30334A;
   --opt-a: #FF8C42; --opt-a-soft: #3A2618; --opt-b: #8E88FF; --opt-b-soft: #25244A;
   --p1: #FF6B9A; --p1-soft: #3B1F2B; --p2: #3FD39E; --p2-soft: #163327;
-  --good: #3FD39E; --bad: #FF6A5E; --lv-leger: #F7C33C; --lv-complice: #FF77AA; --lv-epice: #FF6A5E;
+  --good: #3FD39E; --bad: #FF6A5E; --lv-leger: #F7C33C; --lv-complice: #FF77AA; --lv-epice: #FF6A5E; --lv-extreme: #FF3D6E;
   color-scheme: dark;
 }
 html, body { height: 100%; }
@@ -89,6 +90,10 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--opt-b); out
 .chip { border: 2px solid var(--line); background: var(--bg); border-radius: 14px; padding: 12px; text-align: left; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .chip strong { font-size: .98rem; } .chip span { font-size: .8rem; color: var(--muted); }
 .chip[aria-pressed="true"] { border-color: var(--ink); background: var(--surface); box-shadow: 0 0 0 1px var(--ink) inset; }
+.chip.xt { grid-column: 1 / -1; border-color: var(--lv-extreme); }
+.chip.xt[aria-pressed="true"] { background: var(--lv-extreme); color: #fff; box-shadow: none; }
+.chip.xt[aria-pressed="true"] span { color: #fff; opacity: .85; }
+.warn { font-size: .85rem; border-left: 4px solid var(--lv-extreme); padding-left: 10px; color: var(--muted); }
 .seg .chip { flex: 1; align-items: center; text-align: center; padding: 10px 4px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
 .rules { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: .92rem; }
@@ -181,6 +186,7 @@ const LEVELS = {
   leger:    { label: "Léger",    color: "var(--lv-leger)",    desc: "Absurde et rigolo" },
   complice: { label: "Complice", color: "var(--lv-complice)", desc: "Amour et vie à deux" },
   epice:    { label: "Épicé",    color: "var(--lv-epice)",    desc: "Taquin et coquin" },
+  extreme:  { label: "Extrême",  color: "var(--lv-extreme)",  desc: "Hard, réservé aux adultes" },
 };
 
 const BANK = {
@@ -304,6 +310,49 @@ const BANK = {
       "Décris à {W} la tenue dans laquelle tu aimerais le ou la voir ce soir.",
     ],
   },
+  extreme: {
+    d: [
+      ["Ne plus jamais faire l'amour", "Ne plus jamais manger un plat chaud"],
+      ["Lire tous les messages de ta moitié depuis votre rencontre", "Qu'elle lise tous les tiens"],
+      ["Que ta moitié voie tout ton historique internet", "Que tes parents le voient"],
+      ["Que tes parents vous surprennent au lit", "Surprendre tes parents au lit"],
+      ["Connaître tout le passé amoureux de ta moitié, détails compris", "Ne jamais rien en savoir"],
+      ["Pardonner un baiser avec quelqu'un d'autre", "Pardonner un mensonge d'un an"],
+      ["Un an ensemble sans aucune intimité", "Un an séparés, puis se retrouver"],
+      ["Que ton ex devienne votre voisin", "Que ton ex devienne le collègue de ta moitié"],
+      ["Vivre un an avec ta belle-famille", "Partager ta salle de bain avec ton ex pendant un mois"],
+      ["Vos messages coquins lus à voix haute au repas de famille", "Ton historique internet projeté au bureau"],
+      ["Manger un insecte vivant", "Boire un verre d'eau de vaisselle"],
+      ["Le faire dans un lieu où on risque d'être vus", "Se filmer, rien que pour vous deux"],
+      ["Un week-end entier nus à la maison", "Une soirée en club libertin, juste pour regarder"],
+      ["Être aux ordres de ta moitié toute une soirée", "Avoir ta moitié à tes ordres toute une soirée"],
+      ["Des menottes", "Un bandeau et une plume"],
+      ["Dans une voiture", "Dans une cabine d'essayage"],
+      ["Tout essayer au moins une fois", "Rester sur ce qu'on aime déjà"],
+      ["Une nuit blanche à se découvrir", "Un câlin express tous les matins pendant un mois"],
+      ["Avouer ton fantasme le plus inavouable", "Le réaliser sans en parler avant"],
+      ["Que ta moitié choisisse tous tes dessous pendant une semaine", "Choisir tous les siens pendant une semaine"],
+      ["Ne plus jamais le faire dans un lit", "Toujours le faire dans le noir complet"],
+      ["Un jouet surprise choisi par ta moitié", "Une tenue surprise choisie par ta moitié"],
+      ["Te faire désirer une semaine entière", "Tout, tout de suite, n'importe où"],
+      ["Dire toutes tes envies à voix haute", "Rester totalement silencieux·se"],
+      ["Que ta moitié raconte votre vie intime à son meilleur ami", "Qu'elle la raconte à ta mère"],
+    ],
+    gages: [
+      "Retire deux vêtements choisis par {W}.",
+      "Laisse {W} lire tes 10 derniers messages avec la personne de son choix.",
+      "Laisse {W} publier une story de son choix sur ton compte (supprimable demain).",
+      "Avale une cuillère de sauce piquante ou de moutarde choisie par {W}.",
+      "Pendant 10 minutes, obéis à tous les ordres de {W}, coquins ou non.",
+      "Fais un strip-tease d'une chanson entière pour {W}.",
+      "Yeux bandés, laisse {W} faire ce qu'il ou elle veut pendant 2 minutes.",
+      "Raconte à {W} ton fantasme le plus inavouable, sans rien omettre.",
+      "Joue le reste de la partie en sous-vêtements.",
+      "Laisse {W} te faire un suçon à l'endroit de son choix.",
+      "Montre à {W} tes cinq dernières recherches internet.",
+      "Appelle un ami en haut-parleur et dis-lui la phrase que {W} te souffle.",
+    ],
+  },
 };
 
 const PER_MANCHE = 6; // 5 dilemmes + 1 dilemme maison
@@ -416,7 +465,7 @@ function render() {
   const key = S ? S.screen + (S.cur ? S.cur.i : "") : "setup";
   const changed = render.last !== key; render.last = key;
   if (!S) renderSetup();
-  else ({ mancheIntro, play: renderStep, tribunal: renderTribunal, sentence: renderSentence, end: renderEnd })[S.screen]();
+  else ({ mancheIntro, play: renderStep, sentence: renderSentence, end: renderEnd })[S.screen]();
   if (changed) window.scrollTo(0, 0);
 }
 
@@ -429,7 +478,7 @@ function renderSetup() {
     <header class="hero">
       <span class="eyebrow">Jeu pour deux · un seul téléphone</span>
       <div class="logo" aria-label="Le Grand Dilemme"><span class="la">Le Grand</span><span class="lo">ou</span><span class="lb">Dilemme</span></div>
-      <p class="muted">Tu préfères… ? Chacun choisit pour lui et parie sur le choix de l'autre. En cas de désaccord, place au tribunal.</p>
+      <p class="muted">Tu préfères… ? Chacun choisit pour lui et parie sur le choix de l'autre. À la fin de chaque manche, le gagnant choisit le gage du perdant.</p>
     </header>
     ${resume ? `<div class="card"><p><strong>Partie en cours</strong> entre ${esc(saved.names[0])} et ${esc(saved.names[1])} · ${saved.scores[0]} à ${saved.scores[1]}</p><button class="btn" data-act="resume">Reprendre la partie</button></div>` : ""}
     <section class="card">
@@ -446,7 +495,9 @@ function renderSetup() {
         ${chip("leger", "Léger", LEVELS.leger.desc, LEVELS.leger.color)}
         ${chip("complice", "Complice", LEVELS.complice.desc, LEVELS.complice.color)}
         ${chip("epice", "Épicé", LEVELS.epice.desc, LEVELS.epice.color)}
+        <button class="chip xt" data-act="mode" data-v="extreme" aria-pressed="${d.mode === "extreme"}"><strong>Extrême · 18+</strong><span>Dilemmes impossibles, questions hard, gages sans pitié. Pari raté : −1.</span></button>
       </div>
+      ${d.mode === "extreme" ? `<p class="warn">Réservé aux adultes consentants. Chacun peut dire stop à tout moment : un gage refusé se remplace par un autre, sans discussion.</p>` : ""}
       <h3>Nombre de manches</h3>
       <div class="seg">${[3, 4, 5].map(n => `<button class="chip" data-act="manches" data-v="${n}" aria-pressed="${d.manches === n}"><strong>${n} manches</strong><span>~${n * 10} min</span></button>`).join("")}</div>
     </section>
@@ -455,7 +506,7 @@ function renderSetup() {
       <h3>Les règles</h3>
       <ol class="rules">
         <li>Un dilemme s'affiche. En secret, tu choisis <strong>pour toi</strong>, puis tu paries sur ce que <strong>l'autre</strong> a choisi. Pari juste : +1.</li>
-        <li>Désaccord ? <strong>Le tribunal</strong> : 30 secondes de plaidoirie chacun. Si tu fais changer l'autre d'avis : +2.</li>
+        <li>En mode <strong>Extrême</strong>, un pari raté coûte −1 point.</li>
         <li>Dernier tour de chaque manche : <strong>le dilemme maison</strong>. L'un invente un dilemme et parie sur la réponse de l'autre : +2 si c'est juste.</li>
         <li>Fin de manche : le gagnant choisit le gage du perdant parmi trois.</li>
       </ol>
@@ -535,12 +586,10 @@ function renderReveal() {
     const same = c.self[0] === c.self[1];
     const g = [0, 1].map(p => c.guess[p] === c.self[oth(p)]);
     html = `<div class="verdict ${same ? "same" : "diff"}"><div class="w pop">${same ? "Même camp !" : "Désaccord !"}</div>
-        <p class="muted">${same ? "Vous êtes sur la même longueur d'onde." : "Il va falloir trancher."}</p></div>
+        <p class="muted">${same ? "Vous êtes sur la même longueur d'onde." : "Chacun son camp. Expliquez-vous !"}</p></div>
       ${[0, 1].map(k => `<div class="rdoor ${k ? "B" : "A"}"><span class="t">${esc(o[k])}</span><div class="ppl">${[0, 1].filter(p => c.self[p] === k).map(pill).join("")}</div></div>`).join("")}
-      <div class="preds">${[0, 1].map(p => `<div><span>Pari de ${N(p)} sur ${N(oth(p))}</span><b class="${g[p] ? "ok" : "ko"}">${g[p] ? pts(1) : "raté"}</b></div>`).join("")}</div>`;
-    actions = same
-      ? `<button class="btn" data-act="next">Dilemme suivant</button>`
-      : `<button class="btn" data-act="tribunal">Ouvrir le tribunal</button><button class="btn ghost" data-act="next">Pas de débat, dilemme suivant</button>`;
+      <div class="preds">${[0, 1].map(p => `<div><span>Pari de ${N(p)} sur ${N(oth(p))}</span><b class="${g[p] ? "ok" : "ko"}">${g[p] ? pts(1) : (c.level === "extreme" ? "−1 pt" : "raté")}</b></div>`).join("")}</div>`;
+    actions = `<button class="btn" data-act="next">Dilemme suivant</button>`;
   }
   app.innerHTML = `${scorebar()}<div class="card">${html}</div>${actions}${footer()}`;
 }
@@ -639,7 +688,6 @@ function renderEnd() {
       <div class="preds">
         ${row("Dilemmes où vous étiez d'accord", `${st.same} / ${st.dilemmas}`)}
         ${[0, 1].map(p => row(`Paris justes · ${N(p)}`, `${st.guessOk[p]} / ${st.guessTot[p]}`)).join("")}
-        ${[0, 1].map(p => row(`Plaidoiries gagnées · ${N(p)}`, st.pleas[p])).join("")}
         ${[0, 1].map(p => st.customTot[p] ? row(`Dilemme maison réussi · ${N(p)}`, `${st.customOk[p]} / ${st.customTot[p]}`) : "").join("")}
       </div>
     </div>
@@ -660,7 +708,11 @@ function scoreReveal() {
   } else {
     st.dilemmas++;
     if (c.self[0] === c.self[1]) st.same++;
-    for (const p of [0, 1]) { st.guessTot[p]++; if (c.guess[p] === c.self[oth(p)]) { add(p, 1); st.guessOk[p]++; } }
+    for (const p of [0, 1]) {
+      st.guessTot[p]++;
+      if (c.guess[p] === c.self[oth(p)]) { add(p, 1); st.guessOk[p]++; }
+      else if (c.level === "extreme") add(p, -1);
+    }
   }
 }
 
@@ -698,7 +750,7 @@ app.addEventListener("click", e => {
       if (n[0].toLowerCase() === n[1].toLowerCase()) n[1] += " (2)";
       startGame(n, draft.mode, draft.manches); break;
     }
-    case "resume": S = load(); break;
+    case "resume": S = load(); if (S && S.screen === "tribunal") { S.screen = "play"; nextQuestion(); } break;
     case "advance":
       if (S.screen === "mancheIntro") S.screen = "play"; else S.cur.i++;
       break;
@@ -718,17 +770,6 @@ app.addEventListener("click", e => {
       break;
     }
     case "next": nextQuestion(); break;
-    case "tribunal": {
-      const c = S.cur; const first = Math.random() < .5 ? 0 : 1;
-      c.trib = { order: [first, oth(first)], phase: 0, end: null }; S.screen = "tribunal"; break;
-    }
-    case "plea-go": S.cur.trib.end = Date.now() + PLEA_SECONDS * 1000; break;
-    case "plea-done": { const t = S.cur.trib; t.phase++; t.end = null; break; }
-    case "verdict": {
-      const p = +v;
-      if (p >= 0) { S.scores[p] += 2; S.mScores[S.manche][p] += 2; S.stats.pleas[p]++; }
-      nextQuestion(); break;
-    }
     case "sentence": S.cur.sent.pick = +v; break;
     case "nextManche":
       if (S.manche === S.manches - 1) S.screen = "end";
