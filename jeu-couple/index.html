@@ -1,0 +1,744 @@
+<title>On se connaît ?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&display=swap">
+<style>
+/* Layout : une colonne façon appli de poche, un écran par étape, couleurs par joueur */
+:root {
+  --bg: #F2F0F7;
+  --surface: #FFFFFF;
+  --ink: #1D1928;
+  --muted: #6B6580;
+  --line: #DDD8E8;
+  --p1: #E0533A;      /* joueur 1, corail */
+  --p1-soft: #FBE3DD;
+  --p2: #17878C;      /* joueur 2, canard */
+  --p2-soft: #D6EFF0;
+  --accent: #5B3FD0;
+  --accent-soft: #E6E0FA;
+  --good: #1F8A4C;
+  --bad: #C2352B;
+  --lv-leger: #D99A06;
+  --lv-complice: #D0407A;
+  --lv-epice: #C42C1E;
+  --font-display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius: 18px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15121D; --surface: #211C2C; --ink: #F1EEF8; --muted: #A49DB8; --line: #362F45;
+    --p1: #FF7A5E; --p1-soft: #3D2220; --p2: #3CC2C7; --p2-soft: #163538;
+    --accent: #9C86FF; --accent-soft: #2C2547; --good: #4CC97E; --bad: #FF6B60;
+    --lv-leger: #F2B935; --lv-complice: #FF6FA5; --lv-epice: #FF5A47;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15121D; --surface: #211C2C; --ink: #F1EEF8; --muted: #A49DB8; --line: #362F45;
+  --p1: #FF7A5E; --p1-soft: #3D2220; --p2: #3CC2C7; --p2-soft: #163538;
+  --accent: #9C86FF; --accent-soft: #2C2547; --good: #4CC97E; --bad: #FF6B60;
+  --lv-leger: #F2B935; --lv-complice: #FF6FA5; --lv-epice: #FF5A47;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+}
+#app {
+  max-width: 480px; margin: 0 auto; min-height: 100%;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px 28px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; line-height: 1.1; }
+h1 { font-size: 2.6rem; font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.01em; }
+h3 { font-size: 1.15rem; font-weight: 600; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.eyebrow { font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; font-weight: 700; color: var(--muted); }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+/* Boutons */
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.btn {
+  border: none; border-radius: 14px; padding: 16px 18px; font-weight: 700; font-size: 1.05rem;
+  background: var(--accent); color: #fff; width: 100%; transition: transform .12s ease, filter .12s ease;
+}
+.btn:active { transform: scale(.98); }
+.btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); font-weight: 500; font-size: .95rem; padding: 12px 16px; }
+.btn.p1 { background: var(--p1); }
+.btn.p2 { background: var(--p2); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.linkbtn { background: none; border: none; color: var(--muted); text-decoration: underline; font-size: .9rem; padding: 6px; }
+
+/* Setup */
+.hero { display: flex; flex-direction: column; gap: 10px; padding-top: 8px; }
+.hero h1 .q { color: var(--accent); }
+.names { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field label { font-size: .85rem; font-weight: 700; }
+.field input {
+  font: inherit; padding: 13px 14px; border-radius: 12px; border: 2px solid var(--line);
+  background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box;
+}
+.field.f1 label { color: var(--p1); } .field.f1 input:focus { border-color: var(--p1); outline: none; }
+.field.f2 label { color: var(--p2); } .field.f2 input:focus { border-color: var(--p2); outline: none; }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.chip {
+  border: 2px solid var(--line); background: var(--bg); border-radius: 14px; padding: 12px; text-align: left;
+  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+}
+.chip strong { font-size: 1rem; }
+.chip span { font-size: .8rem; color: var(--muted); }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.chip .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: 1px; }
+.seg { display: flex; gap: 6px; }
+.seg .chip { flex: 1; align-items: center; text-align: center; padding: 10px 6px; }
+
+/* Barre de score */
+.scorebar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+.pl { display: flex; flex-direction: column; min-width: 0; }
+.pl .n { font-weight: 700; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl .s { font-family: var(--font-display); font-weight: 800; font-size: 1.7rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.pl.a { color: var(--p1); } .pl.b { color: var(--p2); text-align: right; }
+.mid { text-align: center; font-size: .78rem; color: var(--muted); line-height: 1.3; }
+.level-tag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; padding: 3px 9px; border-radius: 99px; color: #fff; }
+.progress { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .3s ease; }
+
+/* Passage de téléphone */
+.handoff {
+  flex: 1; border-radius: 24px; padding: 28px 22px; display: flex; flex-direction: column; justify-content: center; gap: 18px;
+  text-align: center; min-height: 52vh;
+}
+.handoff.a { background: var(--p1-soft); } .handoff.b { background: var(--p2-soft); }
+.handoff .big { font-family: var(--font-display); font-weight: 800; font-size: 2.8rem; line-height: 1; word-break: break-word; }
+.handoff.a .big { color: var(--p1); } .handoff.b .big { color: var(--p2); }
+.phone-ico { width: 64px; height: 64px; margin: 0 auto; }
+
+/* Question */
+.who { display: flex; align-items: center; gap: 10px; }
+.avatar { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #fff; font-family: var(--font-display); flex: none; }
+.avatar.a { background: var(--p1); } .avatar.b { background: var(--p2); }
+.qtext { font-family: var(--font-display); font-weight: 600; font-size: 1.45rem; line-height: 1.2; text-wrap: balance; }
+.quote { border-left: 4px solid var(--accent); padding-left: 12px; }
+.opts { display: flex; flex-direction: column; gap: 8px; }
+.opt {
+  border: 2px solid var(--line); background: var(--bg); border-radius: 14px; padding: 14px 16px; text-align: left; font-size: 1.02rem; font-weight: 500;
+  transition: border-color .12s, background .12s;
+}
+.opt[aria-pressed="true"].a { border-color: var(--p1); background: var(--p1-soft); }
+.opt[aria-pressed="true"].b { border-color: var(--p2); background: var(--p2-soft); }
+.opt.big { font-size: 1.2rem; font-weight: 700; text-align: center; padding: 18px; }
+.bet {
+  display: flex; align-items: center; gap: 12px; border: 2px dashed var(--line); border-radius: 14px; padding: 12px 14px; background: transparent; text-align: left; width: 100%;
+}
+.bet[aria-pressed="true"] { border-style: solid; border-color: var(--accent); background: var(--accent-soft); }
+.bet .box { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--muted); flex: none; display: grid; place-items: center; font-weight: 800; color: #fff; font-size: .8rem; }
+.bet[aria-pressed="true"] .box { background: var(--accent); border-color: var(--accent); }
+.bet small { display: block; color: var(--muted); font-size: .8rem; }
+
+/* Révélation */
+.verdict { text-align: center; display: flex; flex-direction: column; gap: 6px; padding: 6px 0; }
+.verdict .word { font-family: var(--font-display); font-weight: 800; font-size: 2.6rem; line-height: 1; }
+.verdict.ok .word { color: var(--good); } .verdict.ko .word { color: var(--bad); }
+.pop { animation: pop .45s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes pop { from { transform: scale(.6); opacity: .3; } to { transform: scale(1); opacity: 1; } }
+.ans { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ans > div { border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ans .a { background: var(--p1-soft); } .ans .b { background: var(--p2-soft); }
+.ans .lbl { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.ans .a .lbl { color: var(--p1); } .ans .b .lbl { color: var(--p2); }
+.ans .val { font-weight: 700; overflow-wrap: anywhere; }
+.pts { text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Gage */
+.gage { border-radius: var(--radius); padding: 18px; background: var(--accent-soft); display: flex; flex-direction: column; gap: 8px; }
+.gage .t { font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; line-height: 1.25; }
+
+/* Fin */
+.final { text-align: center; display: flex; flex-direction: column; gap: 8px; }
+.meter { height: 14px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--p1), var(--accent), var(--p2)); }
+.bignum { font-family: var(--font-display); font-weight: 800; font-size: 3.4rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.recap { display: flex; flex-direction: column; gap: 6px; font-size: .92rem; }
+.recap div { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.recap div span:last-child { font-variant-numeric: tabular-nums; font-weight: 700; }
+
+.rules { font-size: .92rem; color: var(--muted); display: flex; flex-direction: column; gap: 6px; padding-left: 18px; margin: 0; }
+.foot { display: flex; justify-content: center; }
+.confirm { display: flex; gap: 8px; }
+@media (prefers-reduced-motion: reduce) { .pop { animation: none; } .btn, .progress i { transition: none; } }
+</style>
+
+<div id="app" aria-live="polite"></div>
+
+<script>
+/* =========================================================
+   BANQUE DE QUESTIONS
+   {P} = prénom du partenaire de la personne qui répond
+   ========================================================= */
+const LEVELS = {
+  leger:    { label: "Léger",    color: "var(--lv-leger)",    desc: "Fun, sans gêne" },
+  complice: { label: "Complice", color: "var(--lv-complice)", desc: "Tendre, souvenirs" },
+  epice:    { label: "Épicé",    color: "var(--lv-epice)",    desc: "Taquin et coquin" },
+};
+
+const BANK = {
+  leger: {
+    guess: [
+      { q: "Ton plat réconfortant après une sale journée ?", o: ["Pizza", "Pâtes au fromage", "Burger-frites", "Sushis"] },
+      { q: "Tu gagnes au loto. Première chose que tu fais ?", o: ["Je pose ma démission", "Tour du monde", "J'achète une maison", "Je ne le dis à personne"] },
+      { q: "Ton super-pouvoir rêvé ?", o: ["Voler", "Être invisible", "Me téléporter", "Lire dans les pensées"] },
+      { q: "Le matin, tu es plutôt…", o: ["Zombie jusqu'au café", "En forme direct", "Snooze ×5", "Ronchon jusqu'à midi"] },
+      { q: "Ta pire manie à la maison ?", o: ["Chaussettes qui traînent", "Vaisselle « qui trempe »", "Lumières toujours allumées", "Téléphone aux toilettes"] },
+      { q: "Ton film idéal pour un dimanche soir ?", o: ["Une comédie", "Un thriller", "Une romance", "Un dessin animé"] },
+      { q: "En soirée, on te trouve où ?", o: ["Sur la piste de danse", "Près du buffet", "En grande discussion", "Déjà prêt·e à partir"] },
+      { q: "L'animal qui te ressemble le plus ?", o: ["Un chat", "Un chien", "Un paresseux", "Un écureuil"] },
+      { q: "Ta destination de rêve ?", o: ["Japon", "Islande", "Bali", "New York"] },
+      { q: "Face à une araignée dans la salle de bain…", o: ["Je fuis en hurlant", "Je l'écrase", "Je la sors délicatement", "J'appelle {P}"] },
+      { q: "Plus jamais de… tu choisis quoi ?", o: ["Fromage", "Chocolat", "Café", "Pain"] },
+      { q: "La musique en voiture, c'est…", o: ["Années 80", "Rap", "Variété française", "Podcasts"] },
+      { q: "Ce qui t'énerve le plus au quotidien ?", o: ["Les gens lents", "Être en retard", "Avoir faim", "Les bruits de mastication"] },
+      { q: "Ton rapport au rangement ?", o: ["Maniaque", "Bordel organisé", "Bordel tout court", "Je range quand on a des invités"] },
+      { q: "Ton petit-déj idéal ?", o: ["Viennoiseries", "Salé, œufs et bacon", "Juste un café", "Brunch gargantuesque"] },
+      { q: "Le métier que tu aurais adoré faire ?", o: ["Chef cuisinier", "Astronaute", "Artiste", "Détective privé"] },
+      { q: "Combien de temps tu tiens sans téléphone ?", o: ["Une heure, max", "Une journée", "Un week-end", "Une semaine sans souci"] },
+      { q: "Sur une île déserte, tu emportes…", o: ["Un couteau suisse", "Une enceinte", "Un bon livre", "{P}, évidemment"] },
+      { q: "Ton talent caché ?", o: ["Cuisiner", "Imiter les gens", "Chanter sous la douche", "Aucun, mais je bluffe bien"] },
+      { q: "Quand tu es malade, tu es…", o: ["En mode mourant·e", "Stoïque, je ne dis rien", "Collé·e au canapé avec une série", "Je continue comme si de rien n'était"] },
+      { q: "Ton dessert préféré ?", o: ["Tiramisu", "Fondant au chocolat", "Tarte aux fruits", "Glace"] },
+      { q: "En vacances, tu préfères…", o: ["Plage et farniente", "Randonnée", "Visiter des villes", "Road trip improvisé"] },
+      { q: "Le jeu de société qui te rend mauvais·e perdant·e ?", o: ["Monopoly", "Uno", "Jeux de cartes", "Je suis toujours bon·ne perdant·e (mensonge)"] },
+      { q: "Ta réaction quand un plat est raté au resto ?", o: ["Je le dis poliment", "Je mange sans rien dire", "Je râle après coup", "Je laisse {P} gérer"] },
+    ],
+    qui: [
+      "Qui de vous deux est le plus têtu ?",
+      "Qui ronfle le plus fort ?",
+      "Qui se perd le plus souvent, même avec un GPS ?",
+      "Qui dépense le plus pour des trucs inutiles ?",
+      "Qui pleure devant les films ?",
+      "Qui survivrait le plus longtemps à une invasion de zombies ?",
+      "Qui est le plus drôle (même sans faire exprès) ?",
+      "Qui met le plus de temps à se préparer ?",
+      "Qui cuisine le mieux ?",
+      "Qui a les goûts musicaux les plus douteux ?",
+      "Qui gagne le plus souvent les disputes ?",
+      "Qui est le plus râleur ?",
+      "Qui pique la couverture la nuit ?",
+      "Qui est le plus accro à son téléphone ?",
+    ],
+    gages: [
+      "Imite {W} pendant 30 secondes. {W} juge la ressemblance.",
+      "Chante le refrain d'une chanson choisie par {W}, avec conviction.",
+      "Danse 20 secondes sans musique, sous le regard de {W}.",
+      "Raconte ton moment le plus honteux que {W} ne connaît pas encore.",
+      "Prépare la prochaine boisson de {W}, avec service à table.",
+      "Parle avec un accent choisi par {W} jusqu'à la fin de la prochaine manche.",
+      "Fais une déclaration d'amour à {W} façon présentateur météo.",
+      "Laisse {W} choisir ton fond d'écran pour les 24 prochaines heures.",
+    ],
+  },
+  complice: {
+    guess: [
+      { q: "Ton moment préféré de votre histoire ?", o: ["Notre rencontre", "Notre premier voyage", "Notre premier « je t'aime »", "Un moment tout simple du quotidien"] },
+      { q: "Ce que tu as remarqué en premier chez {P} ?", o: ["Les yeux", "Le sourire", "L'humour", "Le style"] },
+      { q: "Ta façon préférée de recevoir de l'amour ?", o: ["Des mots doux", "Des câlins", "Des petites attentions", "Du temps rien qu'à deux"] },
+      { q: "Le rendez-vous idéal avec {P} ?", o: ["Resto chic", "Soirée canapé et plaid", "Aventure en plein air", "Week-end surprise"] },
+      { q: "Quand tu es triste, tu as surtout besoin…", o: ["D'un câlin", "Qu'on en parle", "D'être seul·e un moment", "Qu'on me fasse rire"] },
+      { q: "Le futur dont tu rêves avec {P} ?", o: ["Une maison à la campagne", "Un appart en ville", "Partir vivre à l'étranger", "Peu importe, tant que c'est ensemble"] },
+      { q: "Ce que tu préfères faire à deux un dimanche ?", o: ["Grasse mat'", "Balade", "Cuisiner ensemble", "Marathon de séries"] },
+      { q: "Ce qui te fait le plus craquer chez {P} ?", o: ["Quand {P} cuisine", "Quand {P} rit", "Quand {P} se met sur son 31", "Quand {P} prend soin de moi"] },
+      { q: "Si tu n'avais jamais rencontré {P}, tu serais…", o: ["Toujours célibataire", "Avec quelqu'un d'ennuyeux", "Encore en train de chercher", "Moine ou nonne au Tibet"] },
+      { q: "Après une dispute, toi tu…", o: ["Fais le premier pas", "Attends que ça passe", "Fais un câlin sans un mot", "Veux en parler à fond"] },
+      { q: "La qualité de {P} que tu préfères ?", o: ["La gentillesse", "L'humour", "L'intelligence", "La patience"] },
+      { q: "Le cadeau qui te toucherait le plus ?", o: ["Un objet fait main", "Une expérience à vivre", "Une lettre", "Un truc dont j'ai parlé une seule fois"] },
+      { q: "Ce que tu aimerais faire plus souvent à deux ?", o: ["Voyager", "Sortir le soir", "Se poser sans écrans", "Faire du sport"] },
+      { q: "Ta plus grande peur dans la vie ?", o: ["La solitude", "L'échec", "La maladie", "La routine"] },
+      { q: "La chanson de votre couple serait plutôt…", o: ["Une ballade romantique", "Un tube de l'été", "Du rock", "De la chanson française"] },
+      { q: "Le moment où tu as su que c'était sérieux ?", o: ["Dès le premier rendez-vous", "Après le premier voyage", "En rencontrant la famille", "Je le sais encore aujourd'hui, chaque jour"] },
+      { q: "Ce qui te rassure le plus chez {P} ?", o: ["Sa fidélité", "Son calme", "Sa franchise", "Sa présence"] },
+      { q: "Ton rêve personnel le plus fort ?", o: ["Voyager partout", "Réussir ma carrière", "Fonder une famille", "Créer quelque chose à moi"] },
+      { q: "Le petit geste de {P} que tu adores ?", o: ["Le bisou du matin", "Le message dans la journée", "La main dans la main", "Le café préparé"] },
+      { q: "Dans 10 ans, vous serez…", o: ["Toujours aussi fous", "Posés avec une maison", "Entourés d'enfants ou d'animaux", "En train de faire le tour du monde"] },
+    ],
+    qui: [
+      "Qui a dit « je t'aime » en premier ?",
+      "Qui est le plus romantique ?",
+      "Qui est tombé amoureux en premier ?",
+      "Qui réclame le plus de câlins ?",
+      "Qui pardonne le plus vite ?",
+      "Qui se souvient le mieux des dates importantes ?",
+      "Qui est le plus jaloux ?",
+      "Qui organise les meilleures surprises ?",
+      "Qui a fait le premier pas ?",
+      "Qui dit « pardon » le plus souvent ?",
+      "Qui pense le plus à l'avenir du couple ?",
+      "Qui est le plus fleur bleue en secret ?",
+    ],
+    gages: [
+      "Dis trois choses que tu aimes chez {W}, en le regardant dans les yeux.",
+      "Raconte ton souvenir préféré avec {W}, dans les moindres détails.",
+      "Une minute de regard dans les yeux avec {W}, sans rire.",
+      "Masse les mains de {W} pendant deux minutes.",
+      "Promets à {W} une sortie surprise avant la fin du mois. Pas de retour possible.",
+      "Écris un mot doux à {W} et cache-le quelque part dans la maison.",
+      "Fais un slow avec {W} sur la chanson de son choix.",
+      "Dis à {W} une chose que tu n'as jamais osé lui dire (en gentil).",
+    ],
+  },
+  epice: {
+    guess: [
+      { q: "Le moment où tu trouves {P} le plus irrésistible ?", o: ["Au réveil", "En tenue de soirée", "Après le sport", "Quand {P} est concentré·e"] },
+      { q: "Ce que tu préfères chez {P}, physiquement ?", o: ["Les yeux", "Les lèvres", "Les mains", "Le dos"] },
+      { q: "Ton baiser préféré ?", o: ["Dans le cou", "Long et langoureux", "Volé en public", "Sur le front, tout doux"] },
+      { q: "L'endroit le plus fou où tu aimerais embrasser {P} ?", o: ["En haut d'une grande roue", "Dans un ascenseur", "Sous une pluie d'orage", "Sur une plage la nuit"] },
+      { q: "Ce qui te met le plus dans l'ambiance ?", o: ["La bonne musique", "Un massage", "Un regard appuyé", "Un message coquin dans la journée"] },
+      { q: "La tenue dans laquelle tu préfères {P} ?", o: ["Tenue de soirée", "Jean et t-shirt", "Pyjama", "Rien du tout"] },
+      { q: "Ton week-end coquin idéal ?", o: ["Spa à deux", "Cabane isolée en forêt", "Hôtel de luxe", "Ne pas sortir du lit"] },
+      { q: "Ce qui t'a fait craquer la première fois ?", o: ["Son regard", "Sa voix", "Son parfum", "Notre conversation"] },
+      { q: "Un jeu de rôle pour une soirée, tu choisirais…", o: ["Deux inconnus dans un bar", "Espions en mission", "Star et garde du corps", "Aucun, je reste moi"] },
+      { q: "Ta zone sensible préférée ?", o: ["La nuque", "Les oreilles", "Le bas du dos", "Je garde le secret"] },
+      { q: "Si tu envoyais un message coquin à {P} là maintenant…", o: ["Un compliment brûlant", "Une promesse pour ce soir", "Une photo suggestive", "Juste un emoji flamme"] },
+      { q: "Le massage idéal ?", o: ["À l'huile chaude", "Les pieds", "Les épaules", "Tout le corps, sans limite de temps"] },
+      { q: "L'éclairage parfait pour une soirée à deux ?", o: ["Des bougies", "Le noir total", "Lumière tamisée", "Plein jour, assumé"] },
+      { q: "Ce que tu oses le moins demander à {P} ?", o: ["Un massage plus souvent", "Une nouvelle tenue", "Un week-end improvisé", "Un petit jeu coquin"] },
+      { q: "Ton parfum préféré sur {P} ?", o: ["Son parfum habituel", "L'odeur de sa peau", "Sortie de douche", "Son odeur dans les draps"] },
+      { q: "Le meilleur moment pour un câlin ?", o: ["Le matin", "Sous la douche", "Devant un film", "Improvisé, n'importe où"] },
+      { q: "Ce que tu préfères que {P} te murmure ?", o: ["Des mots doux", "Des promesses", "Des compliments", "Des choses inavouables"] },
+      { q: "La pièce de la maison la plus « inspirante » ?", o: ["La chambre, classique", "La cuisine", "Le salon", "La salle de bain"] },
+    ],
+    qui: [
+      "Qui embrasse le mieux ?",
+      "Qui est le plus coquin des deux ?",
+      "Qui fait le premier pas le plus souvent ?",
+      "Qui est le plus séducteur ?",
+      "Qui a le plus d'imagination… au lit ?",
+      "Qui craque en premier quand l'autre le chauffe ?",
+      "Qui adore le plus être taquiné ?",
+      "Qui est le plus chatouilleux ?",
+      "Qui envoie les messages les plus osés ?",
+      "Qui a le regard le plus irrésistible ?",
+      "Qui pourrait le moins résister à un strip-tease ?",
+      "Qui a eu l'idée la plus folle du couple ?",
+    ],
+    gages: [
+      "Fais un bisou dans le cou de {W}, aussi long que tu l'oses.",
+      "Offre à {W} un massage de cinq minutes, à l'endroit de son choix (raisonnable… ou pas).",
+      "Murmure à l'oreille de {W} ce que tu aimerais faire ce soir.",
+      "Retire un vêtement choisi par {W}. Les accessoires comptent.",
+      "Fais à {W} ta déclaration la plus séductrice, avec la voix qui va avec.",
+      "Embrasse {W} à l'endroit qu'il ou elle désigne (visage, cou ou épaules).",
+      "Laisse {W} te bander les yeux pendant une minute de bisous surprises.",
+      "Envoie à {W} un message coquin maintenant, à lire seulement plus tard.",
+    ],
+  },
+};
+
+const REACT_OK = ["Télépathie confirmée.", "Vous êtes connectés en Bluetooth.", "Bien joué, rien ne t'échappe.", "Ça, c'est de l'écoute.", "Trop facile ?"];
+const REACT_KO = ["Aïe. Il va falloir en parler.", "Raté ! Une explication s'impose.", "Tu pensais connaître ton couple…", "Allez, demande pourquoi.", "Hmm. Débat ouvert."];
+const PATTERN = ["g", "g", "q", "g", "g", "q", "g", "g"]; // 8 questions par manche
+
+/* =========================================================
+   ÉTAT
+   ========================================================= */
+const KEY = "on-se-connait-v1";
+let S = null;
+let setupDraft = { names: ["", ""], mode: "progressif", manches: 3 };
+let quitConfirm = false;
+
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function load() { try { const r = localStorage.getItem(KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+function clearSave() { try { localStorage.removeItem(KEY); } catch (e) {} }
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const rnd = a => a[Math.floor(Math.random() * a.length)];
+const side = i => (i === 0 ? "a" : "b");
+const other = i => 1 - i;
+
+function levelFor(manche) {
+  if (S.mode !== "progressif") return S.mode;
+  const order = ["leger", "complice", "epice"];
+  if (S.manches <= 1) return "complice";
+  return order[Math.round((manche * 2) / (S.manches - 1))];
+}
+
+function draw(level, type) {
+  const pool = type === "g" ? BANK[level].guess : BANK[level].qui;
+  const k = level + type;
+  S.used[k] = S.used[k] || [];
+  if (S.used[k].length >= pool.length) S.used[k] = [];
+  const free = pool.map((_, i) => i).filter(i => !S.used[k].includes(i));
+  const idx = rnd(free);
+  S.used[k].push(idx);
+  return idx;
+}
+
+function startGame(names, mode, manches) {
+  S = {
+    names, mode, manches, manche: 0, q: 0,
+    scores: [0, 0], mScores: [[0, 0]], matches: 0, total: 0, bets: [0, 0], betsWon: [0, 0],
+    used: {}, cur: null, screen: "intro",
+  };
+  newQuestion();
+  S.screen = "mancheIntro";
+}
+
+function newQuestion() {
+  const type = PATTERN[S.q];
+  const level = levelFor(S.manche);
+  const guessIdx = PATTERN.slice(0, S.q).filter(t => t === "g").length;
+  const target = (S.manche + guessIdx) % 2;
+  S.cur = { type, level, idx: draw(level, type), target, answers: [null, null], bet: false, step: 0 };
+}
+
+function fill(text, partnerIdx) { return text.replace(/\{P\}/g, esc(S.names[partnerIdx])); }
+
+/* Séquence des étapes :
+   guess : handoff(cible) → answer(cible) → handoff(devin) → guess(devin) → reveal
+   qui   : handoff(0) → answer(0) → handoff(1) → answer(1) → reveal */
+function stepPlayer() {
+  const c = S.cur;
+  if (c.type === "g") return c.step < 2 ? c.target : other(c.target);
+  return c.step < 2 ? 0 : 1;
+}
+
+/* =========================================================
+   RENDU
+   ========================================================= */
+const app = document.getElementById("app");
+
+function scorebar() {
+  const lv = LEVELS[S.cur ? S.cur.level : levelFor(S.manche)];
+  const done = S.manche * PATTERN.length + S.q;
+  const tot = S.manches * PATTERN.length;
+  return `
+  <div class="stack" style="gap:10px">
+    <div class="scorebar">
+      <div class="pl a"><span class="n">${esc(S.names[0])}</span><span class="s">${S.scores[0]}</span></div>
+      <div class="mid"><span class="level-tag" style="background:${lv.color}">${lv.label}</span><br>Manche ${S.manche + 1}/${S.manches}<br>Question ${Math.min(S.q + 1, PATTERN.length)}/${PATTERN.length}</div>
+      <div class="pl b"><span class="n">${esc(S.names[1])}</span><span class="s">${S.scores[1]}</span></div>
+    </div>
+    <div class="progress" aria-hidden="true"><i style="width:${(done / tot) * 100}%"></i></div>
+  </div>`;
+}
+
+function footer() {
+  if (quitConfirm) {
+    return `<div class="card" style="gap:10px"><p><strong>Quitter la partie ?</strong> Les scores seront perdus.</p>
+      <div class="confirm"><button class="btn ghost" data-act="quit-no">Continuer</button><button class="btn" style="background:var(--bad)" data-act="quit-yes">Quitter</button></div></div>`;
+  }
+  return `<div class="foot"><button class="linkbtn" data-act="quit">Quitter la partie</button></div>`;
+}
+
+const phoneSvg = cls => `<svg class="phone-ico" viewBox="0 0 64 64" aria-hidden="true"><rect x="18" y="6" width="28" height="52" rx="6" fill="none" stroke="var(--${cls === "a" ? "p1" : "p2"})" stroke-width="4"/><circle cx="32" cy="50" r="2.5" fill="var(--${cls === "a" ? "p1" : "p2"})"/><path d="M6 30h8m-4-4 4 4-4 4M58 30h-8m4-4-4 4 4 4" stroke="var(--muted)" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
+
+function render() {
+  if (!S) return renderSetup();
+  const fn = {
+    mancheIntro: renderMancheIntro, handoff: renderHandoff, answer: renderAnswer,
+    reveal: renderReveal, mancheEnd: renderMancheEnd, end: renderEnd,
+  }[S.screen];
+  const key = S.screen + (S.cur ? S.cur.step : "");
+  const changed = render.last !== key;
+  render.last = key;
+  fn();
+  if (changed) window.scrollTo(0, 0);
+}
+
+function renderSetup() {
+  const saved = load();
+  const canResume = saved && saved.screen && saved.screen !== "end";
+  const d = setupDraft;
+  const modeChip = (key, label, desc, color) => `
+    <button class="chip" data-act="mode" data-v="${key}" aria-pressed="${d.mode === key}">
+      <strong>${color ? `<span class="dot" style="background:${color}"></span>` : ""}${label}</strong><span>${desc}</span>
+    </button>`;
+  app.innerHTML = `
+    <header class="hero">
+      <span class="eyebrow">Quiz pour deux · un seul téléphone</span>
+      <h1>On se connaît<span class="q">&nbsp;?</span></h1>
+      <p class="muted">L'un répond en secret, l'autre devine. Vous vous passez le téléphone, et on voit qui connaît vraiment l'autre.</p>
+    </header>
+    ${canResume ? `<div class="card"><p><strong>Partie en cours</strong> entre ${esc(saved.names[0])} et ${esc(saved.names[1])} · ${saved.scores[0]} à ${saved.scores[1]}</p>
+      <button class="btn" data-act="resume">Reprendre la partie</button></div>` : ""}
+    <section class="card">
+      <h3>Les joueurs</h3>
+      <div class="names">
+        <div class="field f1"><label for="n1">Joueur 1</label><input id="n1" maxlength="16" placeholder="Prénom" value="${esc(d.names[0])}" autocomplete="off"></div>
+        <div class="field f2"><label for="n2">Joueur 2</label><input id="n2" maxlength="16" placeholder="Prénom" value="${esc(d.names[1])}" autocomplete="off"></div>
+      </div>
+    </section>
+    <section class="card">
+      <h3>L'ambiance</h3>
+      <div class="choices">
+        ${modeChip("progressif", "Progressif", "De léger à épicé, manche après manche", "var(--accent)")}
+        ${modeChip("leger", "Léger", LEVELS.leger.desc, LEVELS.leger.color)}
+        ${modeChip("complice", "Complice", LEVELS.complice.desc, LEVELS.complice.color)}
+        ${modeChip("epice", "Épicé", LEVELS.epice.desc, LEVELS.epice.color)}
+      </div>
+      <h3>Nombre de manches</h3>
+      <div class="seg">
+        ${[2, 3, 4, 5].map(n => `<button class="chip" data-act="manches" data-v="${n}" aria-pressed="${d.manches === n}"><strong>${n}</strong><span>~${n * 12} min</span></button>`).join("")}
+      </div>
+    </section>
+    <button class="btn" data-act="start" id="startBtn">Commencer la partie</button>
+    <section class="card">
+      <h3>Comment ça marche</h3>
+      <ol class="rules">
+        <li>Chaque manche compte 8 questions. Le téléphone passe de main en main.</li>
+        <li><strong>« Devine »</strong> : l'un répond sur lui-même en secret, l'autre doit deviner. Bonne réponse : +1 point.</li>
+        <li>Tu es sûr·e de toi ? Active le pari : +2 si c'est juste, −1 si c'est faux.</li>
+        <li><strong>« Qui de nous deux »</strong> : chacun vote en secret. Si vous êtes d'accord, +1 chacun.</li>
+        <li>À la fin de chaque manche, le perdant tire un gage.</li>
+      </ol>
+    </section>`;
+}
+
+function renderMancheIntro() {
+  const lv = LEVELS[levelFor(S.manche)];
+  app.innerHTML = `
+    ${scorebar()}
+    <div class="handoff" style="background:var(--accent-soft)">
+      <span class="eyebrow">Manche ${S.manche + 1} sur ${S.manches}</span>
+      <div class="big" style="color:${lv.color}">${lv.label}</div>
+      <p class="muted">${lv.desc}. 6 questions « Devine » et 2 « Qui de nous deux ».</p>
+    </div>
+    <button class="btn" data-act="go">C'est parti</button>
+    ${footer()}`;
+}
+
+function renderHandoff() {
+  const p = stepPlayer();
+  const c = S.cur;
+  let hint;
+  if (c.type === "g") hint = c.step === 0 ? `Tu vas répondre en secret sur toi-même. ${esc(S.names[other(p)])}, ne regarde pas !` : `À toi de deviner ce qu'a répondu ${esc(S.names[other(p)])}.`;
+  else hint = `Question « Qui de nous deux ». Vote en secret, ${esc(S.names[other(p)])} ne doit pas voir.`;
+  app.innerHTML = `
+    ${scorebar()}
+    <div class="handoff ${side(p)}">
+      ${phoneSvg(side(p))}
+      <span class="eyebrow">Passe le téléphone à</span>
+      <div class="big">${esc(S.names[p])}</div>
+      <p>${hint}</p>
+    </div>
+    <button class="btn ${side(p) === "a" ? "p1" : "p2"}" data-act="ready">Je suis ${esc(S.names[p])}, j'y vais</button>
+    ${footer()}`;
+}
+
+function renderAnswer() {
+  const c = S.cur, p = stepPlayer(), cls = side(p);
+  const sel = c.answers[p];
+  let head, opts, extra = "";
+  if (c.type === "g") {
+    const item = BANK[c.level].guess[c.idx];
+    const qtxt = fill(item.q, other(c.target));
+    if (p === c.target) {
+      head = `<span class="eyebrow">Devine · réponds sur toi</span><div class="qtext">${qtxt}</div>`;
+    } else {
+      head = `<span class="eyebrow">Devine · qu'a répondu ${esc(S.names[c.target])} ?</span><div class="qtext quote">${qtxt}</div>`;
+      extra = `<button class="bet" data-act="bet" aria-pressed="${c.bet}"><span class="box">${c.bet ? "✓" : ""}</span><span><strong>Je suis sûr·e de moi</strong><small>+2 si c'est juste, −1 si c'est faux</small></span></button>`;
+    }
+    opts = item.o.map((o, i) => `<button class="opt ${cls}" data-act="pick" data-v="${i}" aria-pressed="${sel === i}">${fill(o, other(c.target))}</button>`).join("");
+  } else {
+    const qtxt = BANK[c.level].qui[c.idx];
+    head = `<span class="eyebrow">Qui de nous deux · vote secret</span><div class="qtext">${esc(qtxt)}</div>`;
+    opts = [0, 1].map(i => `<button class="opt big ${cls}" data-act="pick" data-v="${i}" aria-pressed="${sel === i}">${esc(S.names[i])}</button>`).join("");
+  }
+  const canSkip = c.type === "g" ? c.step === 1 && p === c.target : c.step === 1;
+  app.innerHTML = `
+    ${scorebar()}
+    <div class="card">
+      <div class="who"><span class="avatar ${cls}">${esc(S.names[p].charAt(0).toUpperCase())}</span><strong>${esc(S.names[p])}</strong></div>
+      ${head}
+      <div class="opts">${opts}</div>
+      ${extra}
+    </div>
+    <button class="btn ${cls === "a" ? "p1" : "p2"}" data-act="confirm" ${sel === null ? "disabled" : ""}>Valider en secret</button>
+    ${canSkip ? `<div class="foot"><button class="linkbtn" data-act="skip">Autre question</button></div>` : ""}
+    ${footer()}`;
+}
+
+function renderReveal() {
+  const c = S.cur;
+  let body;
+  if (c.type === "g") {
+    const item = BANK[c.level].guess[c.idx];
+    const t = c.target, g = other(t);
+    const ok = c.answers[t] === c.answers[g];
+    const pts = ok ? (c.bet ? 2 : 1) : (c.bet ? -1 : 0);
+    const ansT = fill(item.o[c.answers[t]], other(t));
+    const ansG = fill(item.o[c.answers[g]], other(t));
+    body = `
+      <div class="verdict ${ok ? "ok" : "ko"}"><div class="word pop">${ok ? "Bien vu !" : "Raté !"}</div><p class="muted">${rnd(ok ? REACT_OK : REACT_KO)}</p></div>
+      <div class="qtext" style="font-size:1.1rem">${fill(item.q, other(t))}</div>
+      <div class="ans">
+        <div class="${side(t)}"><span class="lbl">${esc(S.names[t])} a répondu</span><span class="val">${ansT}</span></div>
+        <div class="${side(g)}"><span class="lbl">${esc(S.names[g])} a deviné</span><span class="val">${ansG}</span></div>
+      </div>
+      <p class="pts">${c.bet ? "Pari activé · " : ""}${esc(S.names[g])} ${pts > 0 ? "+" + pts : pts === 0 ? "+0" : pts} point${Math.abs(pts) > 1 ? "s" : ""}</p>`;
+  } else {
+    const qtxt = BANK[c.level].qui[c.idx];
+    const ok = c.answers[0] === c.answers[1];
+    body = `
+      <div class="verdict ${ok ? "ok" : "ko"}"><div class="word pop">${ok ? "D'accord !" : "Désaccord !"}</div>
+        <p class="muted">${ok ? `Pour vous deux, c'est ${esc(S.names[c.answers[0]])}.` : "Chacun a son avis. À vous de débattre !"}</p></div>
+      <div class="qtext" style="font-size:1.1rem">${esc(qtxt)}</div>
+      <div class="ans">
+        <div class="a"><span class="lbl">${esc(S.names[0])} a voté</span><span class="val">${esc(S.names[c.answers[0]])}</span></div>
+        <div class="b"><span class="lbl">${esc(S.names[1])} a voté</span><span class="val">${esc(S.names[c.answers[1]])}</span></div>
+      </div>
+      <p class="pts">${ok ? "+1 point chacun" : "Pas de point cette fois"}</p>`;
+  }
+  const last = S.q === PATTERN.length - 1;
+  app.innerHTML = `${scorebar()}<div class="card">${body}</div>
+    <button class="btn" data-act="next">${last ? "Voir le bilan de la manche" : "Question suivante"}</button>${footer()}`;
+}
+
+function renderMancheEnd() {
+  const m = S.mScores[S.manche];
+  const lvKey = levelFor(S.manche);
+  let gageHtml;
+  const g = (loser) => fill(rnd(BANK[lvKey].gages).replace(/\{W\}/g, "{P}"), other(loser));
+  if (!S.cur.gage) {
+    if (m[0] === m[1]) S.cur.gage = { tie: true, t: [g(0), g(1)] };
+    else { const loser = m[0] < m[1] ? 0 : 1; S.cur.gage = { tie: false, loser, t: [g(loser)] }; }
+    save();
+  }
+  const G = S.cur.gage;
+  if (G.tie) {
+    gageHtml = `<p><strong>Égalité !</strong> Gage pour les deux.</p>
+      <div class="gage"><span class="eyebrow" style="color:var(--p1)">${esc(S.names[0])}</span><p class="t">${G.t[0]}</p></div>
+      <div class="gage"><span class="eyebrow" style="color:var(--p2)">${esc(S.names[1])}</span><p class="t">${G.t[1]}</p></div>`;
+  } else {
+    gageHtml = `<div class="gage"><span class="eyebrow" style="color:var(--${G.loser === 0 ? "p1" : "p2"})">Gage pour ${esc(S.names[G.loser])}</span><p class="t">${G.t[0]}</p></div>`;
+  }
+  const last = S.manche === S.manches - 1;
+  app.innerHTML = `
+    ${scorebar()}
+    <div class="card">
+      <span class="eyebrow">Fin de la manche ${S.manche + 1}</span>
+      <h2>${m[0] === m[1] ? "Ex æquo" : `${esc(S.names[m[0] > m[1] ? 0 : 1])} remporte la manche`}</h2>
+      <div class="ans">
+        <div class="a"><span class="lbl">${esc(S.names[0])}</span><span class="val">${m[0]} pt${Math.abs(m[0]) > 1 ? "s" : ""} cette manche</span></div>
+        <div class="b"><span class="lbl">${esc(S.names[1])}</span><span class="val">${m[1]} pt${Math.abs(m[1]) > 1 ? "s" : ""} cette manche</span></div>
+      </div>
+      ${gageHtml}
+      ${!G.tie ? `<div class="foot"><button class="linkbtn" data-act="regage">Tirer un autre gage</button></div>` : ""}
+    </div>
+    <button class="btn" data-act="nextManche">${last ? "Voir le résultat final" : "Gage fait, manche suivante"}</button>
+    ${footer()}`;
+}
+
+function renderEnd() {
+  clearSave();
+  const [a, b] = S.scores;
+  const pct = S.total ? Math.round((S.matches / S.total) * 100) : 0;
+  const title = pct >= 80 ? "Télépathes certifiés" : pct >= 60 ? "Duo très complice" : pct >= 40 ? "Encore plein de choses à découvrir" : "Deux inconnus charmants";
+  const winner = a === b ? null : a > b ? 0 : 1;
+  app.innerHTML = `
+    <div class="final">
+      <span class="eyebrow">Partie terminée</span>
+      <h1 style="font-size:2.2rem">${winner === null ? "Égalité parfaite" : `${esc(S.names[winner])} gagne !`}</h1>
+      <p class="muted">${winner === null ? "Personne ne connaît mieux l'autre. C'est presque romantique." : `${esc(S.names[winner])} connaît le mieux ${esc(S.names[other(winner)])}. Le perdant offre le prochain dessert.`}</p>
+    </div>
+    <div class="scorebar card" style="flex-direction:row; display:grid">
+      <div class="pl a"><span class="n">${esc(S.names[0])}</span><span class="s">${a}</span></div>
+      <div class="mid">points</div>
+      <div class="pl b"><span class="n">${esc(S.names[1])}</span><span class="s">${b}</span></div>
+    </div>
+    <div class="card">
+      <span class="eyebrow">Indice de complicité</span>
+      <div class="bignum">${pct}&thinsp;%</div>
+      <div class="meter"><i style="width:${pct}%"></i></div>
+      <h3>${title}</h3>
+      <div class="recap">
+        <div><span>Réponses en phase</span><span>${S.matches} / ${S.total}</span></div>
+        <div><span>Paris gagnés · ${esc(S.names[0])}</span><span>${S.betsWon[0]} / ${S.bets[0]}</span></div>
+        <div><span>Paris gagnés · ${esc(S.names[1])}</span><span>${S.betsWon[1]} / ${S.bets[1]}</span></div>
+      </div>
+    </div>
+    <button class="btn" data-act="replay">Rejouer avec les mêmes réglages</button>
+    <button class="btn ghost" data-act="home">Changer les réglages</button>`;
+}
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+function scoreCurrent() {
+  const c = S.cur, m = S.mScores[S.manche];
+  S.total++;
+  if (c.type === "g") {
+    const t = c.target, g = other(t);
+    const ok = c.answers[t] === c.answers[g];
+    const pts = ok ? (c.bet ? 2 : 1) : (c.bet ? -1 : 0);
+    S.scores[g] += pts; m[g] += pts;
+    if (ok) S.matches++;
+    if (c.bet) { S.bets[g]++; if (ok) S.betsWon[g]++; }
+  } else if (c.answers[0] === c.answers[1]) {
+    S.scores[0]++; S.scores[1]++; m[0]++; m[1]++; S.matches++;
+  }
+}
+
+app.addEventListener("input", e => {
+  if (e.target.id === "n1") setupDraft.names[0] = e.target.value;
+  if (e.target.id === "n2") setupDraft.names[1] = e.target.value;
+});
+
+app.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]");
+  if (!el) return;
+  const act = el.dataset.act, v = el.dataset.v;
+  switch (act) {
+    case "mode": setupDraft.mode = v; renderSetup(); return;
+    case "manches": setupDraft.manches = +v; renderSetup(); return;
+    case "start": {
+      const n = setupDraft.names.map((x, i) => x.trim() || (i === 0 ? "Joueur 1" : "Joueur 2"));
+      if (n[0].toLowerCase() === n[1].toLowerCase()) n[1] += " (2)";
+      startGame(n, setupDraft.mode, setupDraft.manches); break;
+    }
+    case "resume": S = load(); break;
+    case "go": S.screen = "handoff"; break;
+    case "ready": S.cur.step++; S.screen = "answer"; break;
+    case "pick": S.cur.answers[stepPlayer()] = +v; break;
+    case "bet": S.cur.bet = !S.cur.bet; break;
+    case "skip": {
+      const c = S.cur; c.idx = draw(c.level, c.type); c.answers = [null, null]; break;
+    }
+    case "confirm": {
+      if (S.cur.answers[stepPlayer()] === null) return;
+      S.cur.step++;
+      if (S.cur.step >= 4) { scoreCurrent(); S.screen = "reveal"; } else S.screen = "handoff";
+      break;
+    }
+    case "next":
+      if (S.q === PATTERN.length - 1) { S.screen = "mancheEnd"; }
+      else { S.q++; newQuestion(); S.screen = "handoff"; }
+      break;
+    case "regage": S.cur.gage = null; break;
+    case "nextManche":
+      if (S.manche === S.manches - 1) { S.screen = "end"; }
+      else { S.manche++; S.q = 0; S.mScores.push([0, 0]); newQuestion(); S.screen = "mancheIntro"; }
+      break;
+    case "quit": quitConfirm = true; render(); return;
+    case "quit-no": quitConfirm = false; render(); return;
+    case "quit-yes": quitConfirm = false; clearSave(); S = null; break;
+    case "replay": startGame(S.names, S.mode, S.manches); break;
+    case "home": setupDraft = { names: [...S.names], mode: S.mode, manches: S.manches }; S = null; break;
+  }
+  quitConfirm = false;
+  if (S && S.screen !== "end") save();
+  render();
+});
+
+render();
+</script>
