@@ -1,0 +1,749 @@
+<title>Le Grand Dilemme</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Manrope:wght@400;500;700;800&display=swap">
+<style>
+/* Layout : écran unique façon appli, chaque dilemme = deux portes empilées séparées par un « OU » */
+:root {
+  --bg: #EEF0F6;
+  --surface: #FFFFFF;
+  --ink: #161826;
+  --muted: #646a82;
+  --line: #D9DCE8;
+  --opt-a: #F2731F;        /* porte A : mandarine */
+  --opt-a-soft: #FDE6D5;
+  --opt-b: #4B45D6;        /* porte B : indigo */
+  --opt-b-soft: #E2E1FA;
+  --p1: #D63B6E;           /* joueur 1 : framboise */
+  --p1-soft: #FADDE7;
+  --p2: #16926A;           /* joueur 2 : émeraude */
+  --p2-soft: #D4F0E5;
+  --good: #16926A;
+  --bad: #D2382C;
+  --lv-leger: #E0A100;
+  --lv-complice: #D6457F;
+  --lv-epice: #D2382C;
+  --font-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --font-body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12131C; --surface: #1C1E2B; --ink: #F0F1F8; --muted: #9EA3BC; --line: #30334A;
+    --opt-a: #FF8C42; --opt-a-soft: #3A2618; --opt-b: #8E88FF; --opt-b-soft: #25244A;
+    --p1: #FF6B9A; --p1-soft: #3B1F2B; --p2: #3FD39E; --p2-soft: #163327;
+    --good: #3FD39E; --bad: #FF6A5E; --lv-leger: #F7C33C; --lv-complice: #FF77AA; --lv-epice: #FF6A5E;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12131C; --surface: #1C1E2B; --ink: #F0F1F8; --muted: #9EA3BC; --line: #30334A;
+  --opt-a: #FF8C42; --opt-a-soft: #3A2618; --opt-b: #8E88FF; --opt-b-soft: #25244A;
+  --p1: #FF6B9A; --p1-soft: #3B1F2B; --p2: #3FD39E; --p2-soft: #163327;
+  --good: #3FD39E; --bad: #FF6A5E; --lv-leger: #F7C33C; --lv-complice: #FF77AA; --lv-epice: #FF6A5E;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.45; -webkit-tap-highlight-color: transparent; }
+#app {
+  max-width: 480px; margin: 0 auto; min-height: 100%;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px 28px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+h1, h2, h3 { font-family: var(--font-display); margin: 0; line-height: 1.1; text-wrap: balance; }
+h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: 1.35rem; font-weight: 800; }
+h3 { font-size: 1rem; font-weight: 600; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.eyebrow { font-size: .74rem; text-transform: uppercase; letter-spacing: .1em; font-weight: 800; color: var(--muted); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--opt-b); outline-offset: 2px; }
+.btn { border: none; border-radius: 14px; padding: 16px 18px; font-weight: 800; font-size: 1.05rem; background: var(--ink); color: var(--bg); width: 100%; transition: transform .12s; }
+.btn:active { transform: scale(.98); }
+.btn.p1 { background: var(--p1); color: #fff; } .btn.p2 { background: var(--p2); color: #fff; }
+.btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); font-weight: 600; font-size: .95rem; padding: 12px; }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+.linkbtn { background: none; border: none; color: var(--muted); text-decoration: underline; font-size: .9rem; padding: 6px; }
+.foot { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+
+/* Accueil */
+.hero { display: flex; flex-direction: column; gap: 12px; padding-top: 6px; }
+.logo { display: flex; flex-direction: column; gap: 4px; }
+.logo span { font-family: var(--font-display); font-weight: 800; font-size: 2.1rem; line-height: 1; padding: 10px 14px; border-radius: 14px; width: fit-content; }
+.logo .la { background: var(--opt-a); color: #fff; transform: rotate(-2deg); }
+.logo .lo { font-size: .9rem; font-family: var(--font-display); background: none; color: var(--muted); padding: 0 14px; }
+.logo .lb { background: var(--opt-b); color: #fff; transform: rotate(1.5deg); margin-left: 28px; }
+.names { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field label { font-size: .85rem; font-weight: 800; }
+.field input { font: inherit; padding: 13px 14px; border-radius: 12px; border: 2px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; }
+.f1 label { color: var(--p1); } .f2 label { color: var(--p2); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg { display: flex; gap: 6px; }
+.chip { border: 2px solid var(--line); background: var(--bg); border-radius: 14px; padding: 12px; text-align: left; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.chip strong { font-size: .98rem; } .chip span { font-size: .8rem; color: var(--muted); }
+.chip[aria-pressed="true"] { border-color: var(--ink); background: var(--surface); box-shadow: 0 0 0 1px var(--ink) inset; }
+.seg .chip { flex: 1; align-items: center; text-align: center; padding: 10px 4px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.rules { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: .92rem; }
+
+/* Barre de score */
+.scorebar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+.pl { display: flex; flex-direction: column; min-width: 0; }
+.pl .n { font-weight: 800; font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl .s { font-family: var(--font-display); font-weight: 800; font-size: 1.6rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.pl.a { color: var(--p1); } .pl.b { color: var(--p2); text-align: right; }
+.mid { text-align: center; font-size: .76rem; color: var(--muted); line-height: 1.35; }
+.tag { display: inline-block; font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; padding: 3px 9px; border-radius: 99px; color: #fff; }
+.progress { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.progress i { display: block; height: 100%; background: linear-gradient(90deg, var(--opt-a), var(--opt-b)); transition: width .3s; }
+
+/* Passage du téléphone */
+.handoff { border-radius: 24px; padding: 30px 22px; display: flex; flex-direction: column; justify-content: center; gap: 16px; text-align: center; min-height: 48vh; }
+.handoff.a { background: var(--p1-soft); } .handoff.b { background: var(--p2-soft); }
+.handoff .big { font-family: var(--font-display); font-weight: 800; font-size: 2.4rem; line-height: 1.05; overflow-wrap: anywhere; }
+.handoff.a .big { color: var(--p1); } .handoff.b .big { color: var(--p2); }
+
+/* Les deux portes */
+.who { display: flex; align-items: center; gap: 10px; }
+.av { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; color: #fff; font-size: .85rem; flex: none; }
+.av.a { background: var(--p1); } .av.b { background: var(--p2); }
+.prompt { font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; line-height: 1.25; }
+.doors { display: flex; flex-direction: column; gap: 0; position: relative; }
+.door {
+  border: 3px solid transparent; border-radius: 20px; padding: 22px 18px; min-height: 104px; text-align: left;
+  font-weight: 800; font-size: 1.12rem; line-height: 1.3; display: flex; align-items: center; gap: 12px; transition: transform .15s, border-color .15s, opacity .15s;
+}
+.door .k { font-family: var(--font-display); font-size: .8rem; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: none; color: #fff; }
+.door.A { background: var(--opt-a-soft); } .door.A .k { background: var(--opt-a); }
+.door.B { background: var(--opt-b-soft); } .door.B .k { background: var(--opt-b); }
+.door[aria-pressed="true"].A { border-color: var(--opt-a); transform: scale(1.015); }
+.door[aria-pressed="true"].B { border-color: var(--opt-b); transform: scale(1.015); }
+.doors.chosen .door[aria-pressed="false"] { opacity: .55; }
+.ou {
+  align-self: center; margin: -14px 0; z-index: 1; font-family: var(--font-display); font-weight: 800; font-size: .8rem;
+  background: var(--ink); color: var(--bg); border-radius: 99px; padding: 6px 12px; letter-spacing: .06em;
+}
+.custom-in { display: flex; flex-direction: column; gap: 8px; }
+.custom-in input { font: inherit; font-weight: 700; padding: 16px; border-radius: 16px; border: 3px solid var(--line); color: var(--ink); width: 100%; box-sizing: border-box; }
+#ca { background: var(--opt-a-soft); border-color: var(--opt-a); } #cb { background: var(--opt-b-soft); border-color: var(--opt-b); }
+
+/* Révélation */
+.verdict { text-align: center; display: flex; flex-direction: column; gap: 4px; }
+.verdict .w { font-family: var(--font-display); font-weight: 800; font-size: 1.9rem; line-height: 1.05; }
+.verdict.same .w { color: var(--good); } .verdict.diff .w { color: var(--bad); }
+.pop { animation: pop .45s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes pop { from { transform: scale(.6); opacity: .3; } to { transform: none; opacity: 1; } }
+.rdoor { border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.rdoor.A { background: var(--opt-a-soft); } .rdoor.B { background: var(--opt-b-soft); }
+.rdoor .t { font-weight: 800; }
+.rdoor .ppl { display: flex; gap: 6px; flex-wrap: wrap; min-height: 34px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 99px; padding: 4px 12px 4px 4px; font-weight: 800; font-size: .88rem; background: var(--surface); }
+.pill .av { width: 26px; height: 26px; font-size: .7rem; }
+.preds { display: flex; flex-direction: column; gap: 6px; font-size: .92rem; }
+.preds div { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.preds b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ok { color: var(--good); } .ko { color: var(--bad); }
+
+/* Tribunal */
+.court { text-align: center; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+.timer { font-family: var(--font-display); font-weight: 800; font-size: 4.5rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.ring { width: 180px; height: 180px; border-radius: 50%; display: grid; place-items: center; }
+
+/* Sentence */
+.gopt { border: 2px solid var(--line); background: var(--bg); border-radius: 16px; padding: 14px 16px; text-align: left; font-weight: 600; line-height: 1.35; }
+.gopt:active { transform: scale(.99); }
+.sentence { border-radius: 20px; padding: 20px; background: var(--ink); color: var(--bg); display: flex; flex-direction: column; gap: 8px; }
+.sentence .eyebrow { color: var(--bg); opacity: .7; }
+.sentence p { font-family: var(--font-display); font-weight: 600; font-size: 1.15rem; line-height: 1.35; }
+
+/* Fin */
+.bignum { font-family: var(--font-display); font-weight: 800; font-size: 3.2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.meter { height: 14px; border-radius: 99px; overflow: hidden; display: flex; background: var(--opt-b-soft); }
+.meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--opt-a), var(--opt-b)); }
+.confirm { display: flex; gap: 8px; }
+@media (prefers-reduced-motion: reduce) { .pop { animation: none; } .door, .btn, .progress i { transition: none; } }
+</style>
+
+<div id="app" aria-live="polite"></div>
+
+<script>
+/* =========================================================
+   DILEMMES  [option A, option B]
+   ========================================================= */
+const LEVELS = {
+  leger:    { label: "Léger",    color: "var(--lv-leger)",    desc: "Absurde et rigolo" },
+  complice: { label: "Complice", color: "var(--lv-complice)", desc: "Amour et vie à deux" },
+  epice:    { label: "Épicé",    color: "var(--lv-epice)",    desc: "Taquin et coquin" },
+};
+
+const BANK = {
+  leger: {
+    d: [
+      ["Ne plus jamais manger de fromage", "Ne plus jamais manger de chocolat"],
+      ["Avoir des spaghettis à la place des cheveux", "Avoir des saucisses à la place des doigts"],
+      ["Pouvoir parler aux animaux", "Parler toutes les langues du monde"],
+      ["Vivre sans musique", "Vivre sans films ni séries"],
+      ["Toujours avoir 10 minutes de retard", "Toujours avoir 30 minutes d'avance"],
+      ["Être super fort·e mais très lent·e", "Être super rapide mais tout faible"],
+      ["Avoir un dragon de compagnie", "Avoir une licorne de compagnie"],
+      ["Voyager dans le passé", "Voyager dans le futur"],
+      ["Chanter au lieu de parler, toute ta vie", "Danser au lieu de marcher, toute ta vie"],
+      ["Éternuer des confettis", "Roter des bulles de savon"],
+      ["Vivre dans une cabane dans les arbres", "Vivre sur un bateau"],
+      ["Avoir le hoquet pour toujours", "Avoir envie d'éternuer sans jamais y arriver"],
+      ["Un repas gastronomique par mois", "Des pizzas à volonté toute ta vie"],
+      ["Être invisible quand tu veux", "Lire dans les pensées quand tu veux"],
+      ["Ne plus jamais avoir froid", "Ne plus jamais avoir chaud"],
+      ["Un hiver éternel", "Un été éternel"],
+      ["Pouvoir arrêter le temps", "Pouvoir revenir 10 secondes en arrière"],
+      ["Être célèbre et fauché·e", "Être riche et inconnu·e"],
+      ["Un chef cuisinier à domicile", "Quelqu'un qui fait tout le ménage"],
+      ["Dormir 4 heures et être en pleine forme", "Dormir 12 heures par nuit"],
+      ["Ne manger que salé", "Ne manger que sucré"],
+      ["Un mois sans téléphone", "Un mois sans sortir de chez toi"],
+      ["Avoir une queue de chat", "Avoir des oreilles de lapin"],
+      ["Que ta vie soit une comédie musicale", "Que ta vie soit un film d'action"],
+      ["Gagner chaque dispute", "Avoir toujours raison, mais que personne ne le sache"],
+      ["Transpirer du sirop d'érable", "Pleurer du jus d'orange"],
+    ],
+    gages: [
+      "Imite {W} pendant 30 secondes. {W} note la ressemblance sur 10.",
+      "Chante une chanson choisie par {W}, debout et avec conviction.",
+      "Danse 20 secondes sans musique, sous les yeux de {W}.",
+      "Raconte à {W} ton moment le plus honteux.",
+      "Prépare la prochaine boisson de {W}, avec service en salle.",
+      "Parle avec l'accent choisi par {W} jusqu'à la fin de la manche suivante.",
+      "Fais la météo de votre couple façon présentateur télé.",
+      "Laisse {W} choisir ton fond d'écran pour 24 heures.",
+      "Fais 10 squats en disant « {W} a toujours raison ».",
+      "Envoie un message gênant (choisi par {W}) à un ami.",
+    ],
+  },
+  complice: {
+    d: [
+      ["Revivre votre premier rendez-vous", "Vivre un rendez-vous surprise tout neuf"],
+      ["Un voyage d'un mois à deux", "La maison de vos rêves"],
+      ["Recevoir une lettre d'amour", "Recevoir un cadeau surprise"],
+      ["Un dîner aux chandelles à la maison", "Un resto étoilé"],
+      ["Se dire « je t'aime » tous les jours", "Le montrer sans jamais le dire"],
+      ["Un week-end à deux sans téléphone", "Un week-end avec vos amis"],
+      ["Voir une vidéo de vous deux dans 20 ans", "Revoir votre rencontre filmée"],
+      ["Vieillir ensemble à la campagne", "Vieillir ensemble en ville"],
+      ["Que ta moitié te chante une chanson en public", "Que ta moitié fasse un discours sur toi devant ta famille"],
+      ["Se disputer fort et se réconcilier vite", "Ne jamais se disputer mais bouder en silence"],
+      ["Partager tous vos mots de passe", "Garder chacun un jardin secret"],
+      ["Un road trip improvisé", "Un voyage tout organisé"],
+      ["Adopter un chien", "Adopter un chat"],
+      ["Un câlin de 10 minutes", "100 petits bisous"],
+      ["Petit-déj au lit tous les dimanches", "Un massage tous les vendredis"],
+      ["Cuisiner ensemble tous les soirs", "Se faire livrer tous les soirs"],
+      ["Passer une journée dans le corps de ta moitié", "Lire son journal intime d'ado"],
+      ["Un slow au milieu de la rue", "Un karaoké en duo devant des inconnus"],
+      ["Que ta moitié oublie ton anniversaire", "Qu'elle oublie votre anniversaire de couple"],
+      ["Partir vivre à l'étranger ensemble", "Rester près de la famille et des amis"],
+      ["Une lettre d'amour à ouvrir dans 10 ans", "Une chanson écrite pour toi"],
+      ["Connaître toutes les pensées de ta moitié", "Qu'elle connaisse toutes les tiennes"],
+      ["Une grande fête de couple avec tout le monde", "Une cérémonie secrète rien qu'à deux"],
+      ["Un dimanche pyjama-séries", "Un dimanche rando-pique-nique"],
+    ],
+    gages: [
+      "Dis trois choses que tu aimes chez {W}, en le regardant dans les yeux.",
+      "Raconte ton souvenir préféré avec {W}, dans les moindres détails.",
+      "Une minute de regard dans les yeux avec {W}, sans rire.",
+      "Masse les mains de {W} pendant deux minutes.",
+      "Promets à {W} une sortie surprise avant la fin du mois.",
+      "Écris un mot doux à {W} et cache-le dans la maison.",
+      "Fais un slow avec {W} sur la chanson de son choix.",
+      "Dis à {W} une chose que tu n'as jamais osé lui dire (en gentil).",
+      "Prépare le petit-déjeuner de {W} demain matin.",
+      "Imite la façon dont {W} t'a regardé·e la première fois.",
+    ],
+  },
+  epice: {
+    d: [
+      ["Un baiser de 5 minutes", "5 minutes de massage"],
+      ["Une nuit d'hôtel improvisée", "Une nuit sous les étoiles en camping"],
+      ["Lumière allumée", "Lumière éteinte"],
+      ["Un câlin coquin le matin", "Un câlin coquin tard le soir"],
+      ["Recevoir un message coquin au travail", "Trouver ta moitié en tenue sexy en rentrant"],
+      ["Avoir les yeux bandés", "Avoir les mains liées par un foulard"],
+      ["Recevoir un strip-tease", "Faire un strip-tease"],
+      ["Un massage à l'huile", "Un bain moussant à deux"],
+      ["S'embrasser passionnément en public", "Se désirer toute une soirée sans se toucher"],
+      ["Un jeu de rôle", "Un défi coquin"],
+      ["Porter une tenue choisie par ta moitié", "Lui faire la surprise d'une tenue choisie par toi"],
+      ["Sous la douche", "Dans la cuisine"],
+      ["Que ta moitié te murmure ses envies", "Qu'elle te les écrive dans une lettre"],
+      ["Un week-end sans sortir de la chambre", "Un week-end aventure avec pauses coquines"],
+      ["Doux et très long", "Passionné et intense"],
+      ["Se draguer comme deux inconnus dans un bar", "Rejouer votre toute première fois"],
+      ["Des bisous dans le cou", "Des bisous dans le dos"],
+      ["Mener la danse", "Te laisser guider"],
+      ["Recevoir une photo coquine", "Recevoir un message vocal coquin"],
+      ["Bougies et musique douce", "Improvisé, sans rien préparer"],
+      ["Que ta moitié te dévore des yeux toute la soirée", "Qu'elle te chuchote des choses à l'oreille toute la soirée"],
+      ["Un slow très collé-serré", "Une danse très suggestive"],
+    ],
+    gages: [
+      "Fais un bisou dans le cou de {W}, aussi long que tu l'oses.",
+      "Offre à {W} un massage de cinq minutes, à l'endroit de son choix.",
+      "Murmure à l'oreille de {W} ce que tu aimerais faire ce soir.",
+      "Retire un vêtement choisi par {W}. Les accessoires comptent.",
+      "Fais à {W} ta déclaration la plus séductrice, voix sensuelle obligatoire.",
+      "Embrasse {W} là où il ou elle le désigne (visage, cou ou épaules).",
+      "Laisse {W} te bander les yeux pour une minute de bisous surprises.",
+      "Envoie à {W} un message coquin, à lire seulement plus tard.",
+      "Fais un slow très collé-serré avec {W}, sans rire.",
+      "Décris à {W} la tenue dans laquelle tu aimerais le ou la voir ce soir.",
+    ],
+  },
+};
+
+const PER_MANCHE = 6; // 5 dilemmes + 1 dilemme maison
+const PLEA_SECONDS = 30;
+
+/* =========================================================
+   ÉTAT
+   ========================================================= */
+const KEY = "grand-dilemme-v1";
+let S = null;
+let draft = { names: ["", ""], mode: "progressif", manches: 4 };
+let quitAsk = false;
+let timer = null;
+
+const save = () => { try { if (S) localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+const load = () => { try { const r = localStorage.getItem(KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } };
+const clearSave = () => { try { localStorage.removeItem(KEY); } catch (e) {} };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const rnd = a => a[Math.floor(Math.random() * a.length)];
+const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const sd = i => (i === 0 ? "a" : "b");
+const oth = i => 1 - i;
+const N = i => esc(S.names[i]);
+const pts = n => `${n > 0 ? "+" : ""}${n} pt${Math.abs(n) > 1 ? "s" : ""}`;
+
+function levelFor(m) {
+  if (S.mode !== "progressif") return S.mode;
+  if (S.manches <= 1) return "complice";
+  return ["leger", "complice", "epice"][Math.round((m * 2) / (S.manches - 1))];
+}
+
+function draw(level) {
+  const pool = BANK[level].d;
+  S.used[level] = S.used[level] || [];
+  if (S.used[level].length >= pool.length) S.used[level] = [];
+  const free = pool.map((_, i) => i).filter(i => !S.used[level].includes(i));
+  const i = rnd(free); S.used[level].push(i); return i;
+}
+
+function startGame(names, mode, manches) {
+  S = {
+    names, mode, manches, manche: 0, q: 0,
+    scores: [0, 0], mScores: [[0, 0]], used: {},
+    stats: { same: 0, dilemmas: 0, guessOk: [0, 0], guessTot: [0, 0], pleas: [0, 0], customOk: [0, 0], customTot: [0, 0] },
+    cur: null, screen: "mancheIntro",
+  };
+  newQuestion();
+}
+
+function newQuestion() {
+  const level = levelFor(S.manche);
+  const custom = S.q === PER_MANCHE - 1;
+  const first = (S.manche + S.q) % 2;
+  let flow;
+  if (custom) {
+    const w = S.manche % 2; // l'auteur du dilemme maison alterne à chaque manche
+    flow = [
+      { k: "handoff", p: w }, { k: "write", p: w }, { k: "guess", p: w },
+      { k: "handoff", p: oth(w) }, { k: "self", p: oth(w) }, { k: "reveal" },
+    ];
+    S.cur = { level, custom: true, writer: w, opts: ["", ""], self: [null, null], guess: [null, null], flow, i: 0 };
+  } else {
+    const s = oth(first);
+    flow = [
+      { k: "handoff", p: first }, { k: "self", p: first }, { k: "guess", p: first },
+      { k: "handoff", p: s }, { k: "self", p: s }, { k: "guess", p: s }, { k: "reveal" },
+    ];
+    const idx = draw(level);
+    S.cur = { level, custom: false, idx, opts: BANK[level].d[idx], self: [null, null], guess: [null, null], flow, i: 0 };
+  }
+}
+
+const step = () => S.cur.flow[S.cur.i];
+
+/* =========================================================
+   RENDU
+   ========================================================= */
+const app = document.getElementById("app");
+
+function scorebar() {
+  const lv = LEVELS[levelFor(S.manche)];
+  const done = S.manche * PER_MANCHE + S.q;
+  return `<div class="stack">
+    <div class="scorebar">
+      <div class="pl a"><span class="n">${N(0)}</span><span class="s">${S.scores[0]}</span></div>
+      <div class="mid"><span class="tag" style="background:${lv.color}">${lv.label}</span><br>Manche ${S.manche + 1}/${S.manches} · ${Math.min(S.q + 1, PER_MANCHE)}/${PER_MANCHE}</div>
+      <div class="pl b"><span class="n">${N(1)}</span><span class="s">${S.scores[1]}</span></div>
+    </div>
+    <div class="progress" aria-hidden="true"><i style="width:${(done / (S.manches * PER_MANCHE)) * 100}%"></i></div>
+  </div>`;
+}
+
+function footer() {
+  if (quitAsk) return `<div class="card"><p><strong>Quitter la partie ?</strong> Les scores seront perdus.</p>
+    <div class="confirm"><button class="btn ghost" data-act="quit-no">Continuer</button><button class="btn" style="background:var(--bad);color:#fff" data-act="quit-yes">Quitter</button></div></div>`;
+  return `<div class="foot"><button class="linkbtn" data-act="quit">Quitter la partie</button></div>`;
+}
+
+function doors(sel, cls = "") {
+  const o = S.cur.opts;
+  return `<div class="doors ${sel !== null ? "chosen" : ""}">
+    <button class="door A ${cls}" data-act="pick" data-v="0" aria-pressed="${sel === 0}"><span class="k">A</span><span>${esc(o[0])}</span></button>
+    <span class="ou" aria-hidden="true">OU</span>
+    <button class="door B ${cls}" data-act="pick" data-v="1" aria-pressed="${sel === 1}"><span class="k">B</span><span>${esc(o[1])}</span></button>
+  </div>`;
+}
+
+function render() {
+  if (timer) { clearInterval(timer); timer = null; }
+  const key = S ? S.screen + (S.cur ? S.cur.i : "") : "setup";
+  const changed = render.last !== key; render.last = key;
+  if (!S) renderSetup();
+  else ({ mancheIntro, play: renderStep, tribunal: renderTribunal, sentence: renderSentence, end: renderEnd })[S.screen]();
+  if (changed) window.scrollTo(0, 0);
+}
+
+function renderSetup() {
+  const saved = load();
+  const resume = saved && saved.screen && saved.screen !== "end";
+  const d = draft;
+  const chip = (k, label, desc, color) => `<button class="chip" data-act="mode" data-v="${k}" aria-pressed="${d.mode === k}"><strong><span class="dot" style="background:${color}"></span>${label}</strong><span>${desc}</span></button>`;
+  app.innerHTML = `
+    <header class="hero">
+      <span class="eyebrow">Jeu pour deux · un seul téléphone</span>
+      <div class="logo" aria-label="Le Grand Dilemme"><span class="la">Le Grand</span><span class="lo">ou</span><span class="lb">Dilemme</span></div>
+      <p class="muted">Tu préfères… ? Chacun choisit pour lui et parie sur le choix de l'autre. En cas de désaccord, place au tribunal.</p>
+    </header>
+    ${resume ? `<div class="card"><p><strong>Partie en cours</strong> entre ${esc(saved.names[0])} et ${esc(saved.names[1])} · ${saved.scores[0]} à ${saved.scores[1]}</p><button class="btn" data-act="resume">Reprendre la partie</button></div>` : ""}
+    <section class="card">
+      <h3>Les joueurs</h3>
+      <div class="names">
+        <div class="field f1"><label for="n1">Joueur 1</label><input id="n1" maxlength="16" placeholder="Prénom" value="${esc(d.names[0])}" autocomplete="off"></div>
+        <div class="field f2"><label for="n2">Joueur 2</label><input id="n2" maxlength="16" placeholder="Prénom" value="${esc(d.names[1])}" autocomplete="off"></div>
+      </div>
+    </section>
+    <section class="card">
+      <h3>L'ambiance</h3>
+      <div class="grid2">
+        ${chip("progressif", "Progressif", "De léger à épicé", "linear-gradient(90deg,var(--lv-leger),var(--lv-epice))")}
+        ${chip("leger", "Léger", LEVELS.leger.desc, LEVELS.leger.color)}
+        ${chip("complice", "Complice", LEVELS.complice.desc, LEVELS.complice.color)}
+        ${chip("epice", "Épicé", LEVELS.epice.desc, LEVELS.epice.color)}
+      </div>
+      <h3>Nombre de manches</h3>
+      <div class="seg">${[3, 4, 5].map(n => `<button class="chip" data-act="manches" data-v="${n}" aria-pressed="${d.manches === n}"><strong>${n} manches</strong><span>~${n * 10} min</span></button>`).join("")}</div>
+    </section>
+    <button class="btn" data-act="start">Lancer la partie</button>
+    <section class="card">
+      <h3>Les règles</h3>
+      <ol class="rules">
+        <li>Un dilemme s'affiche. En secret, tu choisis <strong>pour toi</strong>, puis tu paries sur ce que <strong>l'autre</strong> a choisi. Pari juste : +1.</li>
+        <li>Désaccord ? <strong>Le tribunal</strong> : 30 secondes de plaidoirie chacun. Si tu fais changer l'autre d'avis : +2.</li>
+        <li>Dernier tour de chaque manche : <strong>le dilemme maison</strong>. L'un invente un dilemme et parie sur la réponse de l'autre : +2 si c'est juste.</li>
+        <li>Fin de manche : le gagnant choisit le gage du perdant parmi trois.</li>
+      </ol>
+    </section>`;
+}
+
+function mancheIntro() {
+  const lv = LEVELS[levelFor(S.manche)];
+  app.innerHTML = `${scorebar()}
+    <div class="handoff" style="background:var(--surface);border:1px solid var(--line)">
+      <span class="eyebrow">Manche ${S.manche + 1} sur ${S.manches}</span>
+      <div class="big" style="color:${lv.color}">${lv.label}</div>
+      <p class="muted">${lv.desc}. 5 dilemmes, puis le dilemme maison de ${N(S.manche % 2)}.</p>
+    </div>
+    <button class="btn" data-act="advance">C'est parti</button>${footer()}`;
+}
+
+function renderStep() {
+  const st = step(), c = S.cur;
+  if (st.k === "reveal") return renderReveal();
+  const p = st.p, cls = sd(p), btn = cls === "a" ? "p1" : "p2";
+  const head = `<div class="who"><span class="av ${cls}">${N(p).charAt(0).toUpperCase()}</span><strong>${N(p)}</strong></div>`;
+  let body = "", ok = false, extra = "";
+
+  if (st.k === "handoff") {
+    let hint;
+    if (c.custom && p === c.writer) hint = `C'est le dilemme maison : tu vas inventer un dilemme pour ${N(oth(p))}. Pas de regard indiscret !`;
+    else if (c.custom) hint = `${N(oth(p))} t'a préparé un dilemme maison. Réponds en toute honnêteté.`;
+    else hint = `Tu vas choisir pour toi, puis parier sur le choix de ${N(oth(p))}. Écran caché !`;
+    app.innerHTML = `${scorebar()}
+      <div class="handoff ${cls}">
+        <span class="eyebrow">Passe le téléphone à</span>
+        <div class="big">${N(p)}</div><p>${hint}</p>
+      </div>
+      <button class="btn ${btn}" data-act="advance">Je suis ${N(p)}, j'y vais</button>${footer()}`;
+    return;
+  }
+  if (st.k === "write") {
+    ok = c.opts[0].trim() && c.opts[1].trim();
+    body = `<span class="eyebrow">Dilemme maison</span>
+      <p class="prompt">Invente un « Tu préfères… » pour ${N(oth(p))}. Plus c'est tordu, mieux c'est.</p>
+      <div class="custom-in">
+        <input id="ca" maxlength="80" placeholder="Option A" value="${esc(c.opts[0])}" autocomplete="off" aria-label="Option A">
+        <span class="ou" style="margin:0" aria-hidden="true">OU</span>
+        <input id="cb" maxlength="80" placeholder="Option B" value="${esc(c.opts[1])}" autocomplete="off" aria-label="Option B">
+      </div>`;
+    extra = `<div class="foot"><button class="linkbtn" data-act="inspire">Une idée au hasard</button><button class="linkbtn" data-act="skipcustom">Passer le dilemme maison</button></div>`;
+  }
+  if (st.k === "self") {
+    ok = c.self[p] !== null;
+    body = `<span class="eyebrow">${c.custom ? `Dilemme maison de ${N(c.writer)}` : "Pour toi"}</span>
+      <p class="prompt">Tu préfères…</p>${doors(c.self[p])}`;
+    if (!c.custom && c.i === 1) extra = `<div class="foot"><button class="linkbtn" data-act="skip">Autre dilemme</button></div>`;
+  }
+  if (st.k === "guess") {
+    ok = c.guess[p] !== null;
+    body = `<span class="eyebrow">Ton pari</span>
+      <p class="prompt">Et ${N(oth(p))}, ${c.custom ? "va choisir" : "a choisi"} quoi d'après toi ?</p>${doors(c.guess[p])}`;
+  }
+  app.innerHTML = `${scorebar()}<div class="card">${head}${body}</div>
+    <button class="btn ${btn}" data-act="confirm" ${ok ? "" : "disabled"}>${st.k === "write" ? "Valider mon dilemme" : "Valider en secret"}</button>${extra}${footer()}`;
+}
+
+function renderReveal() {
+  const c = S.cur, o = c.opts;
+  const pill = i => `<span class="pill"><span class="av ${sd(i)}">${N(i).charAt(0).toUpperCase()}</span>${N(i)}</span>`;
+  let html, actions;
+
+  if (c.custom) {
+    const w = c.writer, r = oth(w), right = c.guess[w] === c.self[r];
+    html = `<div class="verdict ${right ? "same" : "diff"}"><div class="w pop">${right ? "Prédiction parfaite" : "Prédiction ratée"}</div>
+        <p class="muted">${right ? `${N(w)} lit en ${N(r)} comme dans un livre.` : `${N(r)} a surpris ${N(w)}.`}</p></div>
+      ${[0, 1].map(k => `<div class="rdoor ${k ? "B" : "A"}"><span class="t">${esc(o[k])}</span><div class="ppl">${c.self[r] === k ? pill(r) : ""}</div></div>`).join("")}
+      <div class="preds"><div><span>Pari de ${N(w)}</span><b class="${right ? "ok" : "ko"}">${right ? pts(2) : "0 pt"}</b></div></div>`;
+    actions = `<button class="btn" data-act="next">${S.q === PER_MANCHE - 1 ? "Fin de la manche" : "Dilemme suivant"}</button>`;
+  } else {
+    const same = c.self[0] === c.self[1];
+    const g = [0, 1].map(p => c.guess[p] === c.self[oth(p)]);
+    html = `<div class="verdict ${same ? "same" : "diff"}"><div class="w pop">${same ? "Même camp !" : "Désaccord !"}</div>
+        <p class="muted">${same ? "Vous êtes sur la même longueur d'onde." : "Il va falloir trancher."}</p></div>
+      ${[0, 1].map(k => `<div class="rdoor ${k ? "B" : "A"}"><span class="t">${esc(o[k])}</span><div class="ppl">${[0, 1].filter(p => c.self[p] === k).map(pill).join("")}</div></div>`).join("")}
+      <div class="preds">${[0, 1].map(p => `<div><span>Pari de ${N(p)} sur ${N(oth(p))}</span><b class="${g[p] ? "ok" : "ko"}">${g[p] ? pts(1) : "raté"}</b></div>`).join("")}</div>`;
+    actions = same
+      ? `<button class="btn" data-act="next">Dilemme suivant</button>`
+      : `<button class="btn" data-act="tribunal">Ouvrir le tribunal</button><button class="btn ghost" data-act="next">Pas de débat, dilemme suivant</button>`;
+  }
+  app.innerHTML = `${scorebar()}<div class="card">${html}</div>${actions}${footer()}`;
+}
+
+function renderTribunal() {
+  const c = S.cur, t = c.trib;
+  if (t.phase < 2) {
+    const p = t.order[t.phase], cls = sd(p);
+    const side = esc(c.opts[c.self[p]]);
+    const running = t.end && Date.now() < t.end;
+    const left = t.end ? Math.max(0, Math.ceil((t.end - Date.now()) / 1000)) : PLEA_SECONDS;
+    app.innerHTML = `${scorebar()}
+      <div class="handoff ${cls}" style="min-height:auto">
+        <span class="eyebrow">Le tribunal · plaidoirie ${t.phase + 1}/2</span>
+        <div class="big" style="font-size:1.8rem">${N(p)}</div>
+        <p>Défends : <strong>${side}</strong></p>
+        <div class="court"><div class="timer" id="tm">${left}</div></div>
+      </div>
+      ${running
+        ? `<button class="btn ${cls === "a" ? "p1" : "p2"}" data-act="plea-done">J'ai fini ma plaidoirie</button>`
+        : left === 0
+          ? `<button class="btn" data-act="plea-done">${t.phase === 0 ? `Au tour de ${N(t.order[1])}` : "Place au verdict"}</button>`
+          : `<button class="btn ${cls === "a" ? "p1" : "p2"}" data-act="plea-go">Lancer les 30 secondes</button>`}
+      ${footer()}`;
+    if (running) {
+      timer = setInterval(() => {
+        const l = Math.max(0, Math.ceil((t.end - Date.now()) / 1000));
+        const el = document.getElementById("tm"); if (el) el.textContent = l;
+        if (l === 0) render();
+      }, 200);
+    }
+    return;
+  }
+  app.innerHTML = `${scorebar()}
+    <div class="card">
+      <span class="eyebrow">Le verdict</span>
+      <h2>Quelqu'un a changé d'avis ?</h2>
+      <p class="muted">Soyez honnêtes. Faire plier l'autre rapporte +2.</p>
+      <div class="stack">
+        <button class="gopt" data-act="verdict" data-v="0"><strong style="color:var(--p1)">${N(0)}</strong> a convaincu ${N(1)}</button>
+        <button class="gopt" data-act="verdict" data-v="1"><strong style="color:var(--p2)">${N(1)}</strong> a convaincu ${N(0)}</button>
+        <button class="gopt" data-act="verdict" data-v="-1">Personne ne cède, on reste chacun sur ses positions</button>
+      </div>
+    </div>${footer()}`;
+}
+
+function renderSentence() {
+  const m = S.mScores[S.manche], lv = levelFor(S.manche), c = S.cur;
+  const fillG = (txt, winner) => esc(txt).replace(/\{W\}/g, N(winner));
+  if (!c.sent) {
+    if (m[0] === m[1]) c.sent = { tie: true, picks: [rnd(BANK[lv].gages), rnd(BANK[lv].gages)] };
+    else { const loser = m[0] < m[1] ? 0 : 1; c.sent = { tie: false, loser, choices: shuffle(BANK[lv].gages).slice(0, 3), pick: null }; }
+    save();
+  }
+  const s = c.sent, last = S.manche === S.manches - 1;
+  const head = `<span class="eyebrow">Fin de la manche ${S.manche + 1}</span>
+    <h2>${m[0] === m[1] ? "Égalité parfaite" : `${N(m[0] > m[1] ? 0 : 1)} remporte la manche`}</h2>
+    <div class="preds"><div><span>${N(0)}</span><b>${pts(m[0])}</b></div><div><span>${N(1)}</span><b>${pts(m[1])}</b></div></div>`;
+  let body, ready = true;
+  if (s.tie) {
+    body = [0, 1].map(p => `<div class="sentence"><span class="eyebrow">Gage pour ${N(p)}</span><p>${fillG(s.picks[p], oth(p))}</p></div>`).join("");
+  } else if (s.pick === null) {
+    ready = false;
+    const w = oth(s.loser);
+    body = `<p><strong style="color:var(--${w === 0 ? "p1" : "p2"})">${N(w)}</strong>, choisis le gage de ${N(s.loser)} :</p>
+      <div class="stack">${s.choices.map((g, i) => `<button class="gopt" data-act="sentence" data-v="${i}">${fillG(g, w)}</button>`).join("")}</div>`;
+  } else {
+    body = `<div class="sentence pop"><span class="eyebrow">Sentence pour ${N(s.loser)}</span><p>${fillG(s.choices[s.pick], oth(s.loser))}</p></div>`;
+  }
+  app.innerHTML = `${scorebar()}<div class="card">${head}${body}</div>
+    ${ready ? `<button class="btn" data-act="nextManche">${last ? "Voir le verdict final" : "Gage fait, manche suivante"}</button>` : ""}${footer()}`;
+}
+
+function renderEnd() {
+  clearSave();
+  const [a, b] = S.scores, st = S.stats;
+  const pct = st.dilemmas ? Math.round((st.same / st.dilemmas) * 100) : 0;
+  const title = pct >= 75 ? "Âmes jumelles" : pct >= 55 ? "Couple bien accordé" : pct >= 35 ? "Les opposés s'attirent" : "Comme chien et chat";
+  const w = a === b ? null : a > b ? 0 : 1;
+  const row = (label, v) => `<div><span>${label}</span><b>${v}</b></div>`;
+  app.innerHTML = `
+    <div class="stack" style="text-align:center">
+      <span class="eyebrow">Verdict final</span>
+      <h1>${w === null ? "Égalité !" : `${N(w)} gagne`}</h1>
+      <p class="muted">${w === null ? "Impossible de vous départager. Revanche ?" : `${N(oth(w))} offre le prochain petit-déj.`}</p>
+    </div>
+    <div class="card scorebar" style="display:grid">
+      <div class="pl a"><span class="n">${N(0)}</span><span class="s">${a}</span></div><div class="mid">points</div>
+      <div class="pl b"><span class="n">${N(1)}</span><span class="s">${b}</span></div>
+    </div>
+    <div class="card">
+      <span class="eyebrow">Dans le même camp</span>
+      <div class="bignum">${pct}&thinsp;%</div>
+      <div class="meter"><i style="width:${pct}%"></i></div>
+      <h3>${title}</h3>
+      <div class="preds">
+        ${row("Dilemmes où vous étiez d'accord", `${st.same} / ${st.dilemmas}`)}
+        ${[0, 1].map(p => row(`Paris justes · ${N(p)}`, `${st.guessOk[p]} / ${st.guessTot[p]}`)).join("")}
+        ${[0, 1].map(p => row(`Plaidoiries gagnées · ${N(p)}`, st.pleas[p])).join("")}
+        ${[0, 1].map(p => st.customTot[p] ? row(`Dilemme maison réussi · ${N(p)}`, `${st.customOk[p]} / ${st.customTot[p]}`) : "").join("")}
+      </div>
+    </div>
+    <button class="btn" data-act="replay">Revanche</button>
+    <button class="btn ghost" data-act="home">Changer les réglages</button>`;
+}
+
+/* =========================================================
+   LOGIQUE
+   ========================================================= */
+function scoreReveal() {
+  const c = S.cur, m = S.mScores[S.manche], st = S.stats;
+  const add = (p, n) => { S.scores[p] += n; m[p] += n; };
+  if (c.custom) {
+    const w = c.writer;
+    st.customTot[w]++;
+    if (c.guess[w] === c.self[oth(w)]) { add(w, 2); st.customOk[w]++; }
+  } else {
+    st.dilemmas++;
+    if (c.self[0] === c.self[1]) st.same++;
+    for (const p of [0, 1]) { st.guessTot[p]++; if (c.guess[p] === c.self[oth(p)]) { add(p, 1); st.guessOk[p]++; } }
+  }
+}
+
+function nextQuestion() {
+  if (S.q === PER_MANCHE - 1) { S.screen = "sentence"; return; }
+  S.q++; newQuestion(); S.screen = "play";
+}
+
+const INSPI = [
+  ["Manger une araignée", "Embrasser une limace"], ["Ne plus jamais voir ta série préférée", "Ne plus jamais manger ton plat préféré"],
+  ["Passer une nuit dans un musée", "Passer une nuit dans un zoo"], ["Que je lise tes messages", "Que je regarde ton historique internet"],
+  ["Vivre chez mes parents un mois", "Vivre chez les tiens un mois"], ["Porter mes vêtements pendant une semaine", "Porter un costume de mascotte une journée"],
+];
+
+app.addEventListener("input", e => {
+  if (e.target.id === "n1") draft.names[0] = e.target.value;
+  if (e.target.id === "n2") draft.names[1] = e.target.value;
+  if (e.target.id === "ca" || e.target.id === "cb") {
+    S.cur.opts[e.target.id === "ca" ? 0 : 1] = e.target.value;
+    const ok = S.cur.opts[0].trim() && S.cur.opts[1].trim();
+    const b = app.querySelector('[data-act="confirm"]'); if (b) b.disabled = !ok;
+    save();
+  }
+});
+
+app.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]");
+  if (!el) return;
+  const act = el.dataset.act, v = el.dataset.v;
+  switch (act) {
+    case "mode": draft.mode = v; break;
+    case "manches": draft.manches = +v; break;
+    case "start": {
+      const n = draft.names.map((x, i) => x.trim() || `Joueur ${i + 1}`);
+      if (n[0].toLowerCase() === n[1].toLowerCase()) n[1] += " (2)";
+      startGame(n, draft.mode, draft.manches); break;
+    }
+    case "resume": S = load(); break;
+    case "advance":
+      if (S.screen === "mancheIntro") S.screen = "play"; else S.cur.i++;
+      break;
+    case "pick": {
+      const st = step();
+      if (st.k === "self") S.cur.self[st.p] = +v; else if (st.k === "guess") S.cur.guess[st.p] = +v;
+      break;
+    }
+    case "skip": { const c = S.cur; c.idx = draw(c.level); c.opts = BANK[c.level].d[c.idx]; c.self = [null, null]; break; }
+    case "inspire": S.cur.opts = [...rnd(INSPI)]; break;
+    case "skipcustom": nextQuestion(); break;
+    case "confirm": {
+      const st = step(), c = S.cur;
+      if (st.k === "write") c.opts = c.opts.map(x => x.trim());
+      c.i++;
+      if (step().k === "reveal") scoreReveal();
+      break;
+    }
+    case "next": nextQuestion(); break;
+    case "tribunal": {
+      const c = S.cur; const first = Math.random() < .5 ? 0 : 1;
+      c.trib = { order: [first, oth(first)], phase: 0, end: null }; S.screen = "tribunal"; break;
+    }
+    case "plea-go": S.cur.trib.end = Date.now() + PLEA_SECONDS * 1000; break;
+    case "plea-done": { const t = S.cur.trib; t.phase++; t.end = null; break; }
+    case "verdict": {
+      const p = +v;
+      if (p >= 0) { S.scores[p] += 2; S.mScores[S.manche][p] += 2; S.stats.pleas[p]++; }
+      nextQuestion(); break;
+    }
+    case "sentence": S.cur.sent.pick = +v; break;
+    case "nextManche":
+      if (S.manche === S.manches - 1) S.screen = "end";
+      else { S.manche++; S.q = 0; S.mScores.push([0, 0]); newQuestion(); S.screen = "mancheIntro"; }
+      break;
+    case "quit": quitAsk = true; render(); return;
+    case "quit-no": quitAsk = false; render(); return;
+    case "quit-yes": quitAsk = false; clearSave(); S = null; break;
+    case "replay": startGame(S.names, S.mode, S.manches); break;
+    case "home": draft = { names: [...S.names], mode: S.mode, manches: S.manches }; S = null; break;
+  }
+  quitAsk = false;
+  if (S && S.screen !== "end") save();
+  render();
+});
+
+render();
+</script>
