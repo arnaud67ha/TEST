@@ -22,12 +22,14 @@
   --sky: #5BC0EB;
   --pink: #FF8FB1;
   --grape: #9B6BFF;
+  --throat: #7A1E33;
   --muted: #5E5878;
   --display: "Lilita One", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
   --body: "Nunito", "Segoe UI", system-ui, sans-serif;
   color-scheme: light;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body {
   background-color: var(--sun);
@@ -116,7 +118,7 @@ p { margin: 0; line-height: 1.4; }
 .pick .btn.on { background: var(--mint); }
 .pick .btn .nm { overflow-wrap: anywhere; }
 
-/* ---------- Mime ---------- */
+/* ---------- Grands dessins ---------- */
 .secret { font-size: 7rem; text-align: center; line-height: 1.1; }
 .secret-text { font-family: var(--display); font-size: 2rem; text-align: center; }
 .ring { width: 150px; height: 150px; margin: 0 auto; position: relative; }
@@ -193,6 +195,54 @@ p { margin: 0; line-height: 1.4; }
 #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 35; width: 100%; height: 100%; }
 .tiny { font-size: .9rem; color: var(--muted); text-align: center; }
 
+/* ---------- Ballon ---------- */
+.balloon-wrap { height: 280px; display: grid; place-items: center; overflow: hidden; }
+.wob { animation: wob var(--spd, 1.2s) ease-in-out infinite; transform-origin: 50% 90%; }
+@keyframes wob { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+.balloon { font-size: 5rem; line-height: 1; transition: transform .25s cubic-bezier(.3,1.8,.5,1); transform-origin: 50% 80%; }
+.pumps { display: flex; justify-content: center; gap: 10px; }
+.dot { width: 24px; height: 24px; border-radius: 50%; border: 3px solid var(--ink); background: var(--paper); }
+.dot.on { background: var(--sky); }
+.row2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+.btn:disabled { opacity: .45; }
+
+/* ---------- Croco ---------- */
+.croc { background: var(--mint); border: 3px solid var(--ink); border-radius: 48px 48px 28px 28px; box-shadow: 0 6px 0 var(--ink); padding: 12px 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.croc .eyes { font-size: 2.6rem; text-align: center; line-height: 1; }
+.mouth { background: var(--throat); border: 3px solid var(--ink); border-radius: 22px; padding: 10px; display: flex; flex-direction: column; gap: 56px; transition: gap .12s ease-in; }
+.teeth { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 8px; }
+.tooth { aspect-ratio: 3 / 4; background: var(--paper); border: 3px solid var(--ink); cursor: pointer; padding: 0; }
+.top .tooth { border-radius: 8px 8px 50% 50%; }
+.bot .tooth { border-radius: 50% 50% 8px 8px; }
+.tooth.gone { visibility: hidden; }
+.tooth.bad { background: var(--tomato); visibility: visible; }
+.croc.snap .mouth { gap: 0; }
+.croc.snap { animation: shake .12s linear 4; }
+
+/* ---------- Main Éclair ---------- */
+.arena {
+  position: fixed; inset: 0; z-index: 25; background: var(--ink);
+  display: grid; gap: 6px; touch-action: none;
+  padding: calc(6px + env(safe-area-inset-top, 0px)) calc(6px + env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) calc(6px + env(safe-area-inset-left, 0px));
+}
+.zone { border: 0; border-radius: 22px; display: grid; place-items: center; font: inherit; color: var(--ink); cursor: pointer; position: relative; touch-action: none; padding: 0; }
+.zin { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ze { font-size: 3rem; line-height: 1; }
+.zn { font-family: var(--display); font-size: 1.4rem; }
+.zs { min-height: 1.4em; font-size: 1.1rem; }
+.zone.frozen { filter: grayscale(1) brightness(.6); }
+.zone.frozen::after { content: "🥶"; position: absolute; font-size: 2.6rem; top: 10px; left: 50%; transform: translateX(-50%); }
+.zone.win { animation: winz .45s ease-in-out 2; }
+@keyframes winz { 50% { transform: scale(.94); filter: brightness(1.25); } }
+.signal {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 26; pointer-events: none;
+  width: 150px; height: 150px; border-radius: 50%; background: var(--paper); border: 5px solid var(--ink);
+  box-shadow: 0 0 0 8px var(--sun); display: grid; place-items: center; font-size: 4.8rem; line-height: 1;
+}
+.signal small { position: absolute; bottom: 12px; font-size: .85rem; font-family: var(--body); color: var(--muted); }
+.signal .se { display: inline-block; }
+.signal .se.pop { animation: pop .3s cubic-bezier(.3,1.6,.5,1); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
 }
@@ -212,8 +262,14 @@ p { margin: 0; line-height: 1.4; }
 const AVATARS = ['🦊','🐼','🐸','🦄','🐯','🐵','🐙','🦖','🐷','🐨','🦁','🐰','🐧','🐶'];
 
 const GAMES = {
-  mime:   { icon: '🎭', name: 'Mime Mystère', btn: 'sky',
-            rules: "Chacun son tour, tu regardes un mime secret et tu le joues SANS parler. Si quelqu'un devine, vous gagnez 1 point tous les deux !" },
+  ballon: { icon: '🎈', name: 'Ballon Boum', btn: 'sky',
+            rules: "Chacun son tour, gonfle le ballon 1, 2 ou 3 fois, puis passe le téléphone. Attention, il va éclater ! S'il éclate chez toi, tu as un gage, et les autres gagnent 1 point." },
+  croco:  { icon: '🐊', name: 'Croco Croque', btn: '',
+            rules: "Chacun son tour, appuie sur une dent du crocodile, puis passe le téléphone. Une des dents est piégée… CROC ! Si le croco te mord, tu as un gage, et les autres gagnent 1 point." },
+  reflexe:{ icon: '⚡', name: 'Main Éclair', btn: 'red',
+            rules: "Le téléphone est posé au milieu, chacun a sa case. Quand le bon dessin apparaît, tape vite ta case ! Trop tôt, ou sur un autre dessin : tu es gelé pour le tour. 5 tours, 1 point par tour gagné." },
+  chrono: { icon: '⏱️', name: 'Chrono Pile-Poil', btn: 'pink',
+            rules: "Lance le chrono et arrête-le pile à 10 secondes… mais le chrono se cache ! Le plus proche gagne 3 points, puis 2, puis 1." },
   patate: { icon: '🥔', name: 'Patate Explosive', btn: 'red',
             rules: "Le téléphone est une patate qui va exploser ! Dis un mot de la catégorie, tape sur la patate et passe vite le téléphone à ton voisin. Si elle explose dans tes mains, tu as un gage, et les autres gagnent 1 point." },
   defi:   { icon: '🤪', name: 'Défi Rigolo', btn: 'pink',
@@ -221,24 +277,6 @@ const GAMES = {
   tape:   { icon: '🍅', name: 'Tape-Tomate Turbo', btn: '',
             rules: "Tape sur la tomate le plus vite possible ! Le premier gagne 3 points, le deuxième 2, le troisième 1." }
 };
-
-const MIMES = [
-  ['🦖','Un dinosaure qui se brosse les dents'], ['🐔','Une poule qui fait du skate'],
-  ['🐘','Un éléphant qui danse'], ['🧙','Un magicien qui rate son tour'],
-  ['🦀','Un crabe très pressé'], ['🐒','Un singe qui mange une banane géante'],
-  ['🚀','Un astronaute qui marche sur la Lune'], ['🐧','Un pingouin qui glisse sur la glace'],
-  ['🧛','Un vampire qui a peur du noir'], ['👻','Un fantôme qui a le hoquet'],
-  ['🐸','Une grenouille qui saute dans les flaques'], ['🤖','Un robot qui tombe en panne'],
-  ['🦸','Un super-héros qui a perdu sa cape'], ['🐌','Un escargot qui fait la course'],
-  ['🐱','Un chat qui ne veut pas prendre son bain'], ['🍝','Manger des spaghettis très longs'],
-  ['🐄','Une vache qui fait de la danse classique'], ['🧟','Un zombie qui fait du yoga'],
-  ['🐶','Un chien qui court après sa queue'], ['🎸','Une star du rock qui a mal au dos'],
-  ['🦒','Une girafe qui boit avec une paille'], ['🧊','Quelqu’un qui a très très froid'],
-  ['🐝','Une abeille qui cherche des fleurs'], ['🏊','Nager dans de la confiture'],
-  ['🦘','Un kangourou qui saute à la corde'], ['🐙','Une pieuvre qui s’habille'],
-  ['🍦','Une glace qui fond au soleil'], ['🦷','Un dentiste qui a peur des dents'],
-  ['🐻','Un ours qui se réveille de l’hiver'], ['🏴‍☠️','Un pirate qui a le mal de mer']
-];
 
 const CATS = [
   ['🐾','Un animal'], ['🍕','Un truc qui se mange'], ['💛','Un truc jaune'],
@@ -275,8 +313,11 @@ const TAP_WAYS = [
   ['👃','avec le bout du nez'], ['✋','avec la main qui n’écrit pas']
 ];
 
+const TARGETS = [['🍰','le gâteau'], ['🐸','la grenouille'], ['⭐','l’étoile'], ['🍌','la banane'], ['🦄','la licorne'], ['🍕','la pizza']];
+const DECOYS = ['🐍','💩','🧦','🦷','🕷️','🥦','🧅','👻','🐌','🦨','🍔','🐷','🦆','🧀','🚽','🐙'];
+
 const TITLES = [
-  ['💨','Médaille d’or du prout'], ['🎭','Super star du mime'], ['🥔','Roi ou reine des patates'],
+  ['💨','Médaille d’or du prout'], ['🎈','Champion·ne du ballon'], ['🐊','Dompteur·se de croco'], ['⏱️','Horloge humaine'], ['🥔','Roi ou reine des patates'],
   ['🤪','Champion·ne des grimaces'], ['🍅','Doigts de foudre'], ['🐔','Meilleure poule de la maison'],
   ['🦖','Dino le plus rigolo'], ['🌟','Rayon de soleil de la famille'], ['🍝','Spaghetti d’honneur'],
   ['🐸','Grenouille la plus sauteuse']
@@ -324,6 +365,7 @@ function save() {
 
 /* ====================== Outils ====================== */
 const $app = document.getElementById('app');
+const $ = sel => document.querySelector(sel);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const rnd = n => Math.floor(Math.random() * n);
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -405,6 +447,10 @@ const SFX = {
   fanfare:() => [392, 523, 659, 784, 659, 784, 1047].forEach((f, i) => tone(f, f, i === 6 ? .6 : .16, 'triangle', .28, i * .14)),
   beep:   () => tone(660, 660, .12, 'square', .12),
   go:     () => tone(990, 990, .3, 'square', .15),
+  squeak: k => { const f = 260 + k * 35; tone(f, f * 1.3, .12, 'triangle', .22); },
+  pan:    () => { noise(.45, 8000, 300, 1); tone(900, 200, .15, 'square', .2); },
+  snap:   () => { tone(420, 60, .2, 'sawtooth', .45); noise(.25, 3000, 200, .8); },
+  growl:  () => tone(75, 55, .5, 'sawtooth', .2),
   fart() {
     const c = ac(); if (!c) return;
     const t = c.currentTime, dur = .45 + Math.random() * .8, base = 55 + Math.random() * 55;
@@ -450,6 +496,7 @@ function stepConf() {
 function go(screen) {
   clearTimers();
   S.screen = screen;
+  prout.hidden = screen === 'reflexPlay';
   render();
   window.scrollTo(0, 0);
 }
@@ -466,7 +513,9 @@ function buildPlan(n) {
     if (plan.length && s[0] === plan[plan.length - 1]) s.push(s.shift());
     plan.push(...s);
   }
-  return plan.slice(0, n);
+  const out = plan.slice(0, n);
+  if (!out.includes('patate')) out[rnd(n)] = 'patate';  // la patate est toujours de la fête
+  return out;
 }
 function startGame() {
   S.players.forEach(p => { p.score = 0; if (!p.name.trim()) p.name = 'Joueur'; });
@@ -481,7 +530,10 @@ function startRound() {
   const n = S.players.length;
   const first = rnd(n);
   S.R = { type, order: Array.from({ length: n }, (_, i) => (first + i) % n), step: 0 };
-  if (type === 'mime') go('mimePass');
+  if (type === 'ballon') { S.R.booms = 0; go('ballonReady'); }
+  if (type === 'croco') { S.R.booms = 0; go('crocoReady'); }
+  if (type === 'reflexe') { S.R.target = draw('target', TARGETS); go('reflexReady'); }
+  if (type === 'chrono') { S.R.times = {}; go('chronoPass'); }
   if (type === 'patate') { S.R.booms = 0; go('patateReady'); }
   if (type === 'defi') { S.R.defi = draw('defi', DEFIS); go('defiPlay'); }
   if (type === 'tape') { S.R.way = draw('tap', TAP_WAYS); S.R.taps = {}; go('tapePass'); }
@@ -497,7 +549,7 @@ VIEWS.setup = () => `
   <div class="logo">
     <span class="spud" aria-hidden="true">🥔</span>
     <h1>Patate Party</h1>
-    <p>Le jeu de fête de la famille, sur un seul téléphone</p>
+    <p>Le jeu de fête de la famille, sur un seul téléphone qu’on se passe</p>
   </div>
   <section class="card">
     <span class="label">Les joueurs · touche l’animal pour le changer</span>
@@ -530,6 +582,8 @@ VIEWS.setup = () => `
 function gameRules(type) {
   let r = GAMES[type].rules;
   if (type === 'tape' && hasKids() && hasGrown()) r += ' Bonus des petits : 7 secondes ! Les grands : seulement 4.';
+  if (type === 'chrono' && hasKids() && hasGrown()) r += ' Bonus des petits : le chrono reste visible 5 secondes au lieu de 3.';
+  if (type === 'reflexe' && hasKids() && hasGrown()) r += ' Les grands tapent avec le petit doigt !';
   return r;
 }
 VIEWS.intro = () => {
@@ -544,76 +598,7 @@ VIEWS.intro = () => {
 };
 AFTER.intro = () => { const t = S.plan[S.round]; say(GAMES[t].name + '. ' + gameRules(t)); };
 
-/* ---------- Mime ---------- */
 const curP = () => S.players[S.R.order[S.R.step]];
-VIEWS.mimePass = () => `
-  <span class="eyebrow">🎭 Mime ${S.R.step + 1} sur ${S.players.length}</span>
-  <section class="card center">
-    <p>Passe le téléphone à</p>
-    <div>${tag(curP())}</div>
-    <p style="font-size:1.4rem">Les autres, fermez les yeux ! 🙈</p>
-  </section>
-  <button class="btn sky" data-a="mime-see">Je regarde mon mime en secret 👀</button>`;
-AFTER.mimePass = () => { say(`Au tour de ${nameOf(curP())} de mimer ! Les autres, fermez les yeux !`); };
-
-VIEWS.mimeSecret = () => `
-  <span class="eyebrow">🤫 Chut, c’est secret !</span>
-  <section class="card">
-    <div class="secret" aria-hidden="true">${S.R.mime[0]}</div>
-    <p class="secret-text">${esc(S.R.mime[1])}</p>
-    <button class="btn white small" data-a="mime-whisper">🔈 Écouter tout bas (colle le téléphone à ton oreille)</button>
-  </section>
-  <button class="btn sky" data-a="mime-start">J’ai compris, on y va ! ⏱️</button>
-  <button class="btn white small" data-a="mime-other">🔄 Trop dur, un autre</button>`;
-
-const MIME_TIME = 60;
-const ringSVG = (frac, color) => `
-  <svg viewBox="0 0 100 100" aria-hidden="true">
-    <circle cx="50" cy="50" r="42" fill="#FFFDF5" stroke="#1E1B3A" stroke-width="6"></circle>
-    <circle id="ringArc" cx="50" cy="50" r="42" fill="none" stroke="${color}" stroke-width="10" stroke-linecap="round"
-      stroke-dasharray="263.9" stroke-dashoffset="${263.9 * (1 - frac)}"></circle>
-  </svg>`;
-VIEWS.mimePlay = () => {
-  const me = S.R.order[S.R.step];
-  return `
-    <span class="eyebrow">🎭 ${esc(nameOf(curP()))} mime !</span>
-    <div class="ring">${ringSVG(1, 'var(--sky)')}<div class="num" id="num">${MIME_TIME}</div></div>
-    <p class="shush">Pas de bruit, pas de mots… seulement des gestes ! 🤐</p>
-    <section class="card">
-      <span class="label">Qui a trouvé ?</span>
-      <div class="pick">
-        ${S.players.map((p, i) => i === me ? '' : `
-          <button class="btn" data-a="mime-found" data-v="${i}"><span class="e">${p.emoji}</span><span class="nm">${esc(nameOf(p))}</span></button>`).join('')}
-      </div>
-    </section>
-    <button class="btn white small" data-a="mime-fail">Personne n’a trouvé 😢</button>`;
-};
-AFTER.mimePlay = () => {
-  hush();
-  let left = MIME_TIME;
-  every(() => {
-    left--;
-    const n = document.getElementById('num'), a = document.getElementById('ringArc');
-    if (n) n.textContent = left;
-    if (a) a.setAttribute('stroke-dashoffset', 263.9 * (1 - left / MIME_TIME));
-    if (left <= 10 && left > 0) SFX.beep();
-    if (left <= 0) { SFX.buzzer(); buzz(400); S.R.found = null; go('mimeResult'); }
-  }, 1000);
-};
-VIEWS.mimeResult = () => {
-  const me = S.R.order[S.R.step], f = S.R.found;
-  return `
-    <div class="bigicon" aria-hidden="true">${f == null ? '⏰' : '🎉'}</div>
-    <h2 class="title">${f == null ? 'Oh non, personne !' : 'Bravo !'}</h2>
-    <section class="card center">
-      <p>Le mime était :</p>
-      <div class="secret" style="font-size:4.5rem" aria-hidden="true">${S.R.mime[0]}</div>
-      <p class="secret-text">${esc(S.R.mime[1])}</p>
-      ${f == null ? '' : `<p style="font-size:1.25rem">+1 point pour ${S.players[me].emoji} ${esc(nameOf(S.players[me]))} et ${S.players[f].emoji} ${esc(nameOf(S.players[f]))}</p>`}
-    </section>
-    <button class="btn sky" data-a="mime-next">${S.R.step + 1 < S.players.length ? 'Mime suivant ➜' : 'Voir les points 🏆'}</button>`;
-};
-AFTER.mimeResult = () => { say(`Le mime était : ${S.R.mime[1]}`); };
 
 /* ---------- Patate ---------- */
 VIEWS.patateReady = () => `
@@ -653,27 +638,118 @@ AFTER.patatePlay = () => {
   tickLoop();
 };
 function boomNow() {
-  SFX.boom(); buzz([300, 80, 300]);
-  const holderIdx = S.R.order[S.R.holder];
-  S.R.loser = holderIdx;
-  S.R.gage = draw('gage', GAGES);
-  S.players.forEach((_, i) => { if (i !== holderIdx) give(i, 1); });
+  SFX.boom();
+  fail(S.R.order[S.R.holder], '💥', 'BOUM !', 'La patate a explosé chez', 'Encore une patate ➜');
+}
+/* Quelqu'un a perdu : gage pour lui, +1 pour tous les autres */
+function fail(idx, icon, title, text, again) {
+  buzz([300, 80, 300]);
+  S.R.oops = { idx, icon, title, text, again, gage: draw('gage', GAGES) };
+  S.players.forEach((_, i) => { if (i !== idx) give(i, 1); });
   const fl = document.createElement('div'); fl.className = 'flash'; document.body.appendChild(fl);
   setTimeout(() => fl.remove(), 600);
-  go('patateBoom');
+  go('oops');
 }
-VIEWS.patateBoom = () => `
-  <div class="boom" aria-hidden="true">💥</div>
-  <h2 class="title">BOUM !</h2>
+VIEWS.oops = () => {
+  const o = S.R.oops;
+  return `
+    <div class="boom" aria-hidden="true">${o.icon}</div>
+    <h2 class="title">${o.title}</h2>
+    <section class="card center">
+      <p>${o.text}</p>
+      <div>${tag(S.players[o.idx])}</div>
+      <p class="tiny">Tous les autres gagnent 1 point.</p>
+      <span class="label">Ton gage</span>
+      <div class="gage">${esc(o.gage)}</div>
+    </section>
+    <button class="btn red" data-a="oops-next">Gage fait ! ${S.R.booms + 1 < 2 ? esc(o.again) : 'Voir les points 🏆'}</button>`;
+};
+AFTER.oops = () => { const o = S.R.oops; later(() => say(`${o.title} ${o.text} ${nameOf(S.players[o.idx])} ! Ton gage : ${o.gage}`), 700); };
+
+const circleReady = (icon, what, act, txt, cls) => `
+  <span class="eyebrow">${icon} ${what} ${S.R.booms + 1} sur 2</span>
   <section class="card center">
-    <p>La patate a explosé chez</p>
-    <div>${tag(S.players[S.R.loser])}</div>
-    <p class="tiny">Tous les autres gagnent 1 point.</p>
-    <span class="label">Ton gage</span>
-    <div class="gage">${esc(S.R.gage)}</div>
+    <p>Tout le monde se met en cercle.</p>
+    <p>On commence chez</p>
+    <div>${tag(S.players[S.R.order[0]])}</div>
+    <p class="tiny">Puis on passe le téléphone dans cet ordre :<br>
+      ${S.R.order.map(i => S.players[i].emoji).join(' ➜ ')} ➜ …</p>
   </section>
-  <button class="btn red" data-a="patate-next">Gage fait ! ${S.R.booms + 1 < 2 ? 'Encore une patate ➜' : 'Voir les points 🏆'}</button>`;
-AFTER.patateBoom = () => { later(() => say(`Boum ! La patate a explosé chez ${nameOf(S.players[S.R.loser])} ! Ton gage : ${S.R.gage}`), 700); };
+  <button class="btn ${cls}" data-a="${act}">${txt}</button>`;
+const nextHolder = () => {
+  S.R.holder = (S.R.holder + 1) % S.players.length;
+  const h = $('#holder'); if (h) h.innerHTML = tag(S.players[S.R.order[S.R.holder]]);
+};
+
+/* ---------- Ballon Boum ---------- */
+const MAXP = 3;
+const dots = k => Array.from({ length: MAXP }, (_, i) => `<span class="dot ${i < k ? 'on' : ''}"></span>`).join('');
+VIEWS.ballonReady = () => circleReady('🎈', 'Ballon', 'ballon-go', 'Sortir le ballon ! 🎈', 'sky');
+VIEWS.ballonPlay = () => `
+  <p class="center" style="font-size:1.2rem">Gonfle 1, 2 ou 3 fois… puis passe !</p>
+  <div class="balloon-wrap"><div class="wob" id="wob"><div class="balloon" id="balloon">🎈</div></div></div>
+  <div class="pumps" id="dots" aria-label="Coups de pompe ce tour-ci">${dots(0)}</div>
+  <div class="row2">
+    <button class="btn sky" id="pump">Gonfler 💨</button>
+    <button class="btn white" id="pass" disabled>Passer ➜</button>
+  </div>
+  <section class="card center" style="padding:12px"><p>Le ballon est chez</p><div id="holder">${tag(S.players[S.R.order[S.R.holder]])}</div></section>`;
+AFTER.ballonPlay = () => {
+  const B = S.R.bal, pump = $('#pump'), pass = $('#pass'), bal = $('#balloon'), wob = $('#wob');
+  const upd = () => {
+    bal.style.transform = `scale(${1 + 2.3 * Math.min(B.pumps / 18, 1)})`;
+    wob.style.setProperty('--spd', (1.2 - .95 * Math.min(B.pumps / B.limit, 1)).toFixed(2) + 's');
+    $('#dots').innerHTML = dots(B.turn);
+    pump.disabled = B.turn >= MAXP || B.popped;
+    pass.disabled = B.turn < 1 || B.popped;
+  };
+  pump.addEventListener('click', () => {
+    if (B.turn >= MAXP || B.popped) return;
+    B.pumps++; B.turn++;
+    SFX.squeak(B.pumps); buzz(25);
+    if (B.pumps >= B.limit) {
+      B.popped = true; SFX.pan();
+      bal.textContent = '💥';
+      later(() => fail(S.R.order[S.R.holder], '💥', 'PAN !', 'Le ballon a éclaté chez', 'Encore un ballon ➜'), 450);
+    }
+    upd();
+  });
+  pass.addEventListener('click', () => {
+    if (B.turn < 1 || B.popped) return;
+    B.turn = 0; SFX.boing(); nextHolder(); upd();
+    say(`À toi, ${nameOf(S.players[S.R.order[S.R.holder]])} !`);
+  });
+  upd();
+};
+
+/* ---------- Croco Croque ---------- */
+const toothBtn = i => `<button class="tooth" data-t="${i}" aria-label="Dent ${i + 1}"></button>`;
+VIEWS.crocoReady = () => circleReady('🐊', 'Croco', 'croco-go', 'Réveiller le croco ! 🐊', '');
+VIEWS.crocoPlay = () => `
+  <p class="center" style="font-size:1.2rem">Appuie sur une dent… si tu oses ! 😬</p>
+  <div class="croc" id="croc">
+    <div class="eyes" aria-hidden="true">👀</div>
+    <div class="mouth">
+      <div class="teeth top">${[0, 1, 2, 3, 4].map(toothBtn).join('')}</div>
+      <div class="teeth bot">${[5, 6, 7, 8, 9].map(toothBtn).join('')}</div>
+    </div>
+  </div>
+  <section class="card center" style="padding:12px"><p>C’est au tour de</p><div id="holder">${tag(S.players[S.R.order[S.R.holder]])}</div></section>`;
+AFTER.crocoPlay = () => {
+  const C = S.R.croc, croc = $('#croc');
+  croc.addEventListener('click', e => {
+    const t = e.target.closest('[data-t]'); if (!t || C.done) return;
+    const k = +t.dataset.t; if (C.gone.includes(k)) return;
+    if (k === C.bad) {
+      C.done = true; t.classList.add('bad'); croc.classList.add('snap'); SFX.snap();
+      later(() => fail(S.R.order[S.R.holder], '🐊', 'CROC !', 'Le crocodile a mordu', 'Encore un croco ➜'), 900);
+      return;
+    }
+    C.gone.push(k); t.classList.add('gone'); SFX.pop(); buzz(20);
+    if (Math.random() < .35) SFX.growl();
+    nextHolder();
+  });
+};
 
 /* ---------- Défi rigolo ---------- */
 VIEWS.defiPlay = () => {
@@ -781,17 +857,139 @@ VIEWS.tapeDone = () => {
     <button class="btn" data-a="tape-next">${last ? 'Le classement ! 🏆' : 'Joueur suivant ➜'}</button>`;
 };
 AFTER.tapeDone = () => say(`${S.R.taps[S.R.order[S.R.step]]} tapes ! Bravo ${nameOf(curP())} !`);
-function finishTape() {
-  const ranking = Object.entries(S.R.taps).map(([i, c]) => [+i, c]).sort((a, b) => b[1] - a[1]);
+function finishRanked(results, better) {   // results : [[joueur, valeur]]
+  const ranking = results.slice().sort((a, b) => better === 'high' ? b[1] - a[1] : a[1] - b[1]);
   const prizes = [3, 2, 1];
   let place = 0;
   ranking.forEach(([i, c], k) => {          // égalités = même place
-    if (k > 0 && c < ranking[k - 1][1]) place = k;
+    if (k > 0 && c !== ranking[k - 1][1]) place = k;
     if (prizes[place]) give(i, prizes[place]);
   });
   S.R.ranking = ranking;
   endRound();
 }
+const finishTape = () => finishRanked(Object.entries(S.R.taps).map(([i, c]) => [+i, c]), 'high');
+
+/* ---------- Main Éclair ---------- */
+const ZONE_COLORS = ['var(--tomato)', 'var(--sky)', 'var(--pink)', 'var(--grape)', 'var(--mint)', 'var(--paper)'];
+VIEWS.reflexReady = () => `
+  <span class="eyebrow">⚡ Main Éclair</span>
+  <section class="card center">
+    <p>Posez le téléphone à plat au milieu de la table. Chacun met un doigt devant sa case.</p>
+    <p style="font-size:1.3rem">Tape ta case dès que tu vois</p>
+    <div class="secret" style="font-size:5rem" aria-hidden="true">${S.R.target[0]}</div>
+    <p class="secret-text">${esc(S.R.target[1])}</p>
+    <p class="tiny">Trop tôt ou sur un autre dessin ? Gelé 🥶 pour ce tour !${hasKids() && hasGrown() ? ' Les grands tapent avec le petit doigt.' : ''}</p>
+  </section>
+  <button class="btn red" data-a="reflex-go">Prêts ! ⚡</button>`;
+AFTER.reflexReady = () => say(`Tape ta case dès que tu vois ${S.R.target[1]} ! Pas avant !`);
+VIEWS.reflexPlay = () => {
+  const n = S.players.length, cols = n === 2 ? 1 : 2, rows = Math.ceil(n / cols);
+  return `<div class="arena" style="grid-template-columns:repeat(${cols},minmax(0,1fr));grid-template-rows:repeat(${rows},minmax(0,1fr))">
+    ${S.players.map((p, i) => {
+      const row = Math.floor(i / cols), flip = rows > 1 && row < rows / 2 - 0.01;
+      const span = (cols === 2 && n % 2 === 1 && i === n - 1) ? 'grid-column:1 / 3;' : '';
+      return `<button class="zone" data-z="${i}" style="background:${ZONE_COLORS[i % ZONE_COLORS.length]};${span}" aria-label="Case de ${esc(nameOf(p))}">
+        <span class="zin" style="${flip ? 'transform:rotate(180deg)' : ''}"><span class="ze">${p.emoji}</span><span class="zn">${esc(nameOf(p))}</span><span class="zs" id="zs${i}"></span></span></button>`;
+    }).join('')}
+  </div>
+  <div class="signal" id="sig"><span class="se" id="sigE">👀</span><small id="sigN"></small></div>`;
+};
+AFTER.reflexPlay = () => {
+  const X = S.R.rx, n = S.players.length, sigE = $('#sigE');
+  const show = e => { sigE.textContent = e; sigE.classList.remove('pop'); void sigE.offsetWidth; sigE.classList.add('pop'); };
+  const next = () => { if (X.turn >= X.turns) endRound(); else newTurn(); };
+  const newTurn = () => {
+    X.turn++; X.armed = false; X.live = true; X.frozen = new Set();
+    const my = X.turn, ok = () => X.turn === my && X.live;
+    document.querySelectorAll('.zone').forEach(z => z.classList.remove('frozen', 'win'));
+    $('#sigN').textContent = `${X.turn} / ${X.turns}`;
+    show('👀'); SFX.beep();
+    let t = 1300 + rnd(2200);
+    const decoys = rnd(4);                    // 0 à 3 faux dessins avant le vrai
+    for (let d = 0; d < decoys; d++) {
+      const e = DECOYS[rnd(DECOYS.length)];
+      later(() => { if (ok()) { show(e); SFX.tick(); } }, t);
+      later(() => { if (ok()) show('👀'); }, t + 750);
+      t += 750 + 500 + rnd(1200);
+    }
+    later(() => {
+      if (!ok()) return;
+      X.armed = true; show(S.R.target[0]); SFX.go();
+      later(() => { if (ok()) { X.live = false; show('😴'); later(next, 1200); } }, 4000);
+    }, t);
+  };
+  $('.arena').addEventListener('pointerdown', e => {
+    const z = e.target.closest('[data-z]'); if (!z) return;
+    e.preventDefault();
+    if (!X.live) return;
+    const i = +z.dataset.z; if (X.frozen.has(i)) return;
+    if (!X.armed) {
+      X.frozen.add(i); z.classList.add('frozen'); SFX.buzzer(); buzz(150);
+      if (X.frozen.size >= n) { X.live = false; show('🥶'); later(next, 1300); }
+      return;
+    }
+    X.live = false; X.armed = false;
+    give(i, 1); X.wins[i] = (X.wins[i] || 0) + 1;
+    z.classList.add('win'); $('#zs' + i).textContent = '⭐'.repeat(X.wins[i]);
+    show(S.players[i].emoji); SFX.yay(); buzz(80);
+    later(next, 1600);
+  });
+  hush();
+  newTurn();
+};
+
+/* ---------- Chrono Pile-Poil ---------- */
+const chronoShow = p => (hasKids() && hasGrown() && p.kid) ? 5 : 3;
+const fmt = t => t.toFixed(2).replace('.', ',');
+const chronoMsg = t => {
+  const d = Math.abs(t - 10);
+  return d < .2 ? 'INCROYABLE ! 🤯' : d < .6 ? 'Super proche ! 🔥' : d < 1.5 ? 'Pas mal du tout ! 👍' : t < 10 ? 'Trop pressé ! 🐇' : 'Oups, trop tard ! 🐢';
+};
+VIEWS.chronoPass = () => `
+  <span class="eyebrow">⏱️ Joueur ${S.R.step + 1} sur ${S.players.length}</span>
+  <section class="card center">
+    <p>Passe le téléphone à</p>
+    <div>${tag(curP())}</div>
+    <p style="font-size:1.3rem">Arrête le chrono <b>pile à 10 secondes</b> !</p>
+    <p class="tiny">Le chrono se cache au bout de ${chronoShow(curP())} secondes. Compte dans ta tête !</p>
+  </section>
+  <button class="btn pink" data-a="chrono-start">Partez ! ⏱️</button>`;
+AFTER.chronoPass = () => say(`À toi, ${nameOf(curP())} ! Arrête le chrono pile à 10 secondes. Compte dans ta tête !`);
+VIEWS.chronoRun = () => `
+  <span class="eyebrow">⏱️ ${esc(nameOf(curP()))}</span>
+  <div class="counter" id="clock" style="font-size:5rem">0,0</div>
+  <p class="center" id="hint" style="font-size:1.2rem">Compte dans ta tête…</p>
+  <button class="btn red" id="stop" style="font-size:3rem;padding-block:48px">STOP ✋</button>`;
+AFTER.chronoRun = () => {
+  hush(); SFX.go();
+  const start = performance.now(), visible = chronoShow(curP()) * 1000, clock = $('#clock');
+  let hidden = false, done = false;
+  const stop = () => {
+    if (done) return; done = true;
+    S.R.times[S.R.order[S.R.step]] = (performance.now() - start) / 1000;
+    SFX.beep(); buzz(60); go('chronoDone');
+  };
+  $('#stop').addEventListener('pointerdown', e => { e.preventDefault(); stop(); });
+  every(() => {
+    const el = performance.now() - start;
+    if (el < visible) clock.textContent = (el / 1000).toFixed(1).replace('.', ',');
+    else if (!hidden) { hidden = true; clock.textContent = '🙈'; $('#hint').textContent = 'Le chrono se cache ! Appuie sur STOP à 10 secondes.'; SFX.boing(); }
+    if (el > 30000) stop();
+  }, 50);
+};
+VIEWS.chronoDone = () => {
+  const i = S.R.order[S.R.step], t = S.R.times[i], last = S.R.step + 1 >= S.players.length;
+  return `
+    <div class="bigicon" aria-hidden="true">⏱️</div>
+    <section class="card center">
+      <div>${tag(S.players[i])}</div>
+      <div class="counter">${fmt(t)} s</div>
+      <p style="font-size:1.3rem">${chronoMsg(t)}</p>
+    </section>
+    <button class="btn pink" data-a="chrono-next">${last ? 'Le classement ! 🏆' : 'Joueur suivant ➜'}</button>`;
+};
+AFTER.chronoDone = () => { const t = S.R.times[S.R.order[S.R.step]]; say(`${fmt(t)} secondes ! ${chronoMsg(t)}`); };
 
 /* ---------- Scores ---------- */
 const MEDAL = ['🥇', '🥈', '🥉'];
@@ -802,6 +1000,9 @@ VIEWS.scores = () => {
   let tapeRecap = '';
   if (S.R.type === 'tape' && S.R.ranking) {
     tapeRecap = `<p class="tiny">${S.R.ranking.map(([i, c]) => `${S.players[i].emoji} ${c}`).join(' · ')} tapes</p>`;
+  }
+  if (S.R.type === 'chrono' && S.R.ranking) {
+    tapeRecap = `<p class="tiny center">${S.R.ranking.map(([i]) => `${S.players[i].emoji} ${fmt(S.R.times[i])} s`).join(' · ')}</p>`;
   }
   return `
     <span class="eyebrow">Après la manche ${S.round + 1} sur ${S.plan.length}</span>
@@ -874,20 +1075,6 @@ const ACT = {
   reread() { const t = S.plan[S.round]; say(GAMES[t].name + '. ' + gameRules(t), true); },
   'round-go'() { hush(); startRound(); },
 
-  'mime-see'() { S.R.mime = draw('mime', MIMES); hush(); go('mimeSecret'); },
-  'mime-other'() { S.R.mime = draw('mime', MIMES); render(); },
-  'mime-whisper'() {
-    try {
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(S.R.mime[1]); u.lang = 'fr-FR'; u.volume = .5; u.rate = .9;
-      if (frVoice) u.voice = frVoice; speechSynthesis.speak(u);
-    } catch (e) {}
-  },
-  'mime-start'() { SFX.go(); go('mimePlay'); },
-  'mime-found'(v) { S.R.found = +v; give(S.R.order[S.R.step], 1); give(+v, 1); SFX.yay(); buzz(80); go('mimeResult'); },
-  'mime-fail'() { S.R.found = null; SFX.buzzer(); go('mimeResult'); },
-  'mime-next'() { S.R.step++; if (S.R.step < S.players.length) go('mimePass'); else endRound(); },
-
   'patate-go'() {
     S.R.cat = draw('cat', CATS);
     S.R.holder = 0;
@@ -895,10 +1082,25 @@ const ACT = {
     say(S.R.cat[1] + ' !');
     go('patatePlay');
   },
-  'patate-next'() {
+  'oops-next'() {
     S.R.booms++;
-    if (S.R.booms < 2) { S.R.order.push(S.R.order.shift()); go('patateReady'); }
+    if (S.R.booms < 2) { S.R.order.push(S.R.order.shift()); go(S.R.type + 'Ready'); }
     else endRound();
+  },
+  'ballon-go'() {
+    S.R.bal = { pumps: 0, turn: 0, limit: 6 + rnd(13), popped: false };
+    S.R.holder = 0; say('Gonfle le ballon !'); go('ballonPlay');
+  },
+  'croco-go'() {
+    S.R.croc = { bad: rnd(10), gone: [], done: false };
+    S.R.holder = 0; SFX.growl(); say('Attention au crocodile !'); go('crocoPlay');
+  },
+  'reflex-go'() { S.R.rx = { turn: 0, turns: 5, wins: {}, live: false }; go('reflexPlay'); },
+  'chrono-start'() { go('chronoRun'); },
+  'chrono-next'() {
+    S.R.step++;
+    if (S.R.step < S.players.length) go('chronoPass');
+    else finishRanked(Object.entries(S.R.times).map(([i, t]) => [+i, Math.abs(t - 10)]), 'low');
   },
 
   'defi-next'() { SFX.boing(); S.R.step++; render(); },
