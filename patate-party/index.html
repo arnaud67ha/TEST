@@ -243,6 +243,22 @@ p { margin: 0; line-height: 1.4; }
 .signal .se { display: inline-block; }
 .signal .se.pop { animation: pop .3s cubic-bezier(.3,1.6,.5,1); }
 
+/* ---------- Double Vue ---------- */
+.vwrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.vwrap.nope { animation: shake .1s linear 3; }
+.vcard { position: relative; width: min(64vw, 33vh, 270px); max-width: 100%; aspect-ratio: 1; border-radius: 50%; background: var(--paper); border: 3px solid var(--ink); box-shadow: 0 6px 0 var(--ink); }
+.sym { position: absolute; background: none; border: 0; padding: 4px; line-height: 1; cursor: pointer; touch-action: manipulation; }
+
+/* ---------- Ferme Folle ---------- */
+.farm { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; width: 100%; max-width: 340px; margin: 0 auto; }
+.fbtn { aspect-ratio: 1; font-size: 4rem; border: 3px solid var(--ink); border-radius: 28px; box-shadow: 0 6px 0 var(--ink); cursor: pointer; padding: 0; transition: transform .1s, filter .1s; }
+.fbtn.lit { transform: scale(1.08); filter: brightness(1.2) saturate(1.3); box-shadow: 0 0 0 6px var(--paper), 0 6px 0 var(--ink); }
+
+/* ---------- Jacques a dit / Dis-en 3 ---------- */
+.order-card { font-family: var(--display); font-size: 2.1rem; text-align: center; line-height: 1.1; }
+.jq-yes { color: var(--mint); -webkit-text-stroke: 1px var(--ink); }
+.big-num { font-family: var(--display); font-size: 6rem; text-align: center; line-height: 1; font-variant-numeric: tabular-nums; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
 }
@@ -275,7 +291,15 @@ const GAMES = {
   defi:   { icon: '🤪', name: 'Défi Rigolo', btn: 'pink',
             rules: "Tout le monde fait le défi, chacun son tour. Ensuite, on vote pour le plus drôle. Le gagnant marque 2 points !" },
   tape:   { icon: '🍅', name: 'Tape-Tomate Turbo', btn: '',
-            rules: "Tape sur la tomate le plus vite possible ! Le premier gagne 3 points, le deuxième 2, le troisième 1." }
+            rules: "Tape sur la tomate le plus vite possible ! Le premier gagne 3 points, le deuxième 2, le troisième 1." },
+  vue:    { icon: '👀', name: 'Double Vue', btn: 'sky',
+            rules: "Deux cartes, un seul dessin en commun ! Trouve-le et tape dessus le plus vite possible. Chacun son tour : celui qui trouve le plus de paires gagne 3 points, puis 2, puis 1." },
+  trois:  { icon: '🖐️', name: 'Dis-en 3 !', btn: 'pink',
+            rules: "Le téléphone te donne un thème : dis 3 réponses avant la fin du chrono ! Les autres jugent. Si tu réussis, tu gagnes 2 points. Deux tours chacun." },
+  ferme:  { icon: '🐮', name: 'La Ferme Folle', btn: '',
+            rules: "Écoute les animaux de la ferme, refais la même suite, puis passe le téléphone : à chaque fois, un animal de plus ! Si tu te trompes, tu as un gage, et les autres gagnent 1 point." },
+  jacques:{ icon: '🙋', name: 'Jacques a dit', btn: 'red',
+            rules: "Le téléphone donne des ordres. Fais-les seulement si « Jacques a dit » ! Sinon, ne bouge pas. Celui qui se fait attraper le moins gagne." }
 };
 
 const CATS = [
@@ -316,8 +340,33 @@ const TAP_WAYS = [
 const TARGETS = [['🍰','le gâteau'], ['🐸','la grenouille'], ['⭐','l’étoile'], ['🍌','la banane'], ['🦄','la licorne'], ['🍕','la pizza']];
 const DECOYS = ['🐍','💩','🧦','🦷','🕷️','🥦','🧅','👻','🐌','🦨','🍔','🐷','🦆','🧀','🚽','🐙'];
 
+const SYMS = ['🐶','🐱','🦊','🐸','🐵','🐧','🐢','🐙','🦋','🐝','🍎','🍌','🍓','🍕','🍦','🍩','⚽','🎈','🚗','🚀','⭐','🌙','🌈','🔥','💧','🎸','🎁','👑','🦷','🍄','🌵','⏰','🔑','✏️','🐳','🦕'];
+
+const TROIS = [
+  ['🐟','3 animaux de la mer'], ['🔴','3 choses rouges'], ['🍎','3 fruits'], ['🧢','3 choses qu’on met sur la tête'],
+  ['📺','3 dessins animés'], ['🛁','3 choses dans la salle de bain'], ['🔊','3 choses qui font du bruit'],
+  ['🐄','3 animaux de la ferme'], ['❄️','3 choses froides'], ['🚲','3 choses qui roulent'], ['🍬','3 desserts ou bonbons'],
+  ['🏖️','3 choses à la plage'], ['🧸','3 jouets'], ['🎨','3 couleurs'], ['👩‍🚒','3 métiers'], ['🌵','3 choses qui piquent'],
+  ['🦋','3 choses qui volent'], ['🥕','3 légumes'], ['🎒','3 choses dans un cartable'], ['🦁','3 animaux sauvages'],
+  ['🎄','3 choses de Noël'], ['🍳','3 choses dans le frigo'], ['🦸','3 héros ou princesses'], ['👕','3 vêtements']
+];
+
+const FARM = [
+  { e: '🐮', c: 'var(--tomato)', s: () => tone(150, 105, .5, 'sawtooth', .3) },
+  { e: '🐷', c: 'var(--pink)',   s: () => { tone(700, 430, .16, 'square', .16); tone(660, 400, .18, 'square', .14, .2); } },
+  { e: '🐔', c: 'var(--sun)',    s: () => { tone(900, 1300, .08, 'triangle', .25); tone(1000, 1400, .08, 'triangle', .25, .11); tone(800, 1150, .16, 'triangle', .25, .22); } },
+  { e: '🐸', c: 'var(--mint)',   s: () => { tone(230, 160, .12, 'square', .22); tone(210, 140, .14, 'square', .22, .16); } }
+];
+
+const ORDRES = [
+  ['👃','touche ton nez'], ['🙌','lève les bras'], ['😛','tire la langue'], ['🦘','saute sur place'],
+  ['🐱','fais miaou'], ['😌','ferme les yeux'], ['👏','tape dans tes mains'], ['👂','touche tes oreilles'],
+  ['🤪','fais une grimace'], ['🙆','mets les mains sur la tête'], ['🌀','tourne sur toi-même'],
+  ['🐔','fais la poule'], ['🐡','gonfle tes joues'], ['🦩','lève un pied'], ['🤫','chuchote « patate »'], ['💪','montre tes muscles']
+];
+
 const TITLES = [
-  ['💨','Médaille d’or du prout'], ['🎈','Champion·ne du ballon'], ['🐊','Dompteur·se de croco'], ['⏱️','Horloge humaine'], ['🥔','Roi ou reine des patates'],
+  ['💨','Médaille d’or du prout'], ['🎈','Champion·ne du ballon'], ['🐊','Dompteur·se de croco'], ['⏱️','Horloge humaine'], ['👀','Yeux de lynx'], ['🐮','Fermier·ère en chef'], ['🙋','Oreilles en or'], ['🥔','Roi ou reine des patates'],
   ['🤪','Champion·ne des grimaces'], ['🍅','Doigts de foudre'], ['🐔','Meilleure poule de la maison'],
   ['🦖','Dino le plus rigolo'], ['🌟','Rayon de soleil de la famille'], ['🍝','Spaghetti d’honneur'],
   ['🐸','Grenouille la plus sauteuse']
@@ -348,7 +397,7 @@ function load() {
     const d = JSON.parse(localStorage.getItem('patate-party') || 'null');
     if (d && Array.isArray(d.players) && d.players.length >= 2) {
       S.players = d.players.map(p => ({ name: String(p.name || '').slice(0, 16), emoji: p.emoji || '🙂', kid: !!p.kid, score: 0 }));
-      if ([4, 6, 8].includes(d.rounds)) S.rounds = d.rounds;
+      if ([4, 6, 8, 11].includes(d.rounds)) S.rounds = d.rounds;
       if (typeof d.tts === 'boolean') S.tts = d.tts;
       return;
     }
@@ -451,6 +500,7 @@ const SFX = {
   pan:    () => { noise(.45, 8000, 300, 1); tone(900, 200, .15, 'square', .2); },
   snap:   () => { tone(420, 60, .2, 'sawtooth', .45); noise(.25, 3000, 200, .8); },
   growl:  () => tone(75, 55, .5, 'sawtooth', .2),
+  ding:   () => { tone(880, 880, .08, 'triangle', .25); tone(1320, 1320, .15, 'triangle', .25, .08); },
   fart() {
     const c = ac(); if (!c) return;
     const t = c.currentTime, dur = .45 + Math.random() * .8, base = 55 + Math.random() * 55;
@@ -496,7 +546,7 @@ function stepConf() {
 function go(screen) {
   clearTimers();
   S.screen = screen;
-  prout.hidden = screen === 'reflexPlay';
+  prout.hidden = screen === 'reflexPlay' || screen === 'jacquesPlay';
   render();
   window.scrollTo(0, 0);
 }
@@ -534,6 +584,14 @@ function startRound() {
   if (type === 'croco') { S.R.booms = 0; go('crocoReady'); }
   if (type === 'reflexe') { S.R.target = draw('target', TARGETS); go('reflexReady'); }
   if (type === 'chrono') { S.R.times = {}; go('chronoPass'); }
+  if (type === 'vue') { S.R.vue = {}; go('vuePass'); }
+  if (type === 'trois') go('troisPass');
+  if (type === 'ferme') { S.R.booms = 0; go('fermeReady'); }
+  if (type === 'jacques') {
+    const flags = shuffle([1, 1, 1, 1, 1, 0, 0, 0]);
+    S.R.jq = { k: 0, errors: {}, list: flags.map(j => ({ j: !!j, o: draw('ordre', ORDRES) })) };
+    go('jacquesPlay');
+  }
   if (type === 'patate') { S.R.booms = 0; go('patateReady'); }
   if (type === 'defi') { S.R.defi = draw('defi', DEFIS); go('defiPlay'); }
   if (type === 'tape') { S.R.way = draw('tap', TAP_WAYS); S.R.taps = {}; go('tapePass'); }
@@ -565,7 +623,7 @@ VIEWS.setup = () => `
   <section class="card">
     <span class="label">Combien de manches ?</span>
     <div class="chips">
-      ${[[4, 'Rapide · 4'], [6, 'Normal · 6'], [8, 'Marathon · 8']].map(([v, l]) =>
+      ${[[4, 'Rapide · 4'], [6, 'Normal · 6'], [8, 'Long · 8'], [11, 'Tous les jeux · 11']].map(([v, l]) =>
         `<button class="chip ${S.rounds === v ? 'on' : ''}" data-a="rounds" data-v="${v}">${l}</button>`).join('')}
     </div>
     <span class="label">Voix</span>
@@ -584,6 +642,8 @@ function gameRules(type) {
   if (type === 'tape' && hasKids() && hasGrown()) r += ' Bonus des petits : 7 secondes ! Les grands : seulement 4.';
   if (type === 'chrono' && hasKids() && hasGrown()) r += ' Bonus des petits : le chrono reste visible 5 secondes au lieu de 3.';
   if (type === 'reflexe' && hasKids() && hasGrown()) r += ' Les grands tapent avec le petit doigt !';
+  if (type === 'vue' && hasKids() && hasGrown()) r += ' Bonus des petits : 30 secondes ! Les grands : 20.';
+  if (type === 'trois' && hasKids() && hasGrown()) r += ' Bonus des petits : 10 secondes ! Les grands : seulement 5.';
   return r;
 }
 VIEWS.intro = () => {
@@ -991,6 +1051,186 @@ VIEWS.chronoDone = () => {
 };
 AFTER.chronoDone = () => { const t = S.R.times[S.R.order[S.R.step]]; say(`${fmt(t)} secondes ! ${chronoMsg(t)}`); };
 
+/* ---------- Double Vue ---------- */
+const SLOTS = [[50, 50], [50, 17], [82, 39], [70, 79], [30, 79], [18, 39]];
+function newPair() {
+  const pool = shuffle(SYMS), common = pool[0];
+  return { common, a: shuffle([common, ...pool.slice(1, 6)]), b: shuffle([common, ...pool.slice(6, 11)]) };
+}
+const vcard = syms => `<div class="vcard">${syms.map((e, k) => {
+  const [x, y] = SLOTS[k], sz = (1.8 + Math.random() * 1.2).toFixed(2), r = rnd(360);
+  return `<button class="sym" data-s="${e}" style="left:${x}%;top:${y}%;font-size:${sz}rem;transform:translate(-50%,-50%) rotate(${r}deg)" aria-label="${e}">${e}</button>`;
+}).join('')}</div>`;
+const vueTime = p => (hasKids() && hasGrown()) ? (p.kid ? 30 : 20) : 25;
+VIEWS.vuePass = () => `
+  <span class="eyebrow">👀 Joueur ${S.R.step + 1} sur ${S.players.length}</span>
+  <section class="card center">
+    <p>Passe le téléphone à</p>
+    <div>${tag(curP())}</div>
+    <p style="font-size:1.25rem">Trouve le dessin qui est sur <b>les deux cartes</b> et tape dessus !</p>
+    <p class="tiny">${vueTime(curP())} secondes. Si tu te trompes, tu es bloqué 1 seconde.</p>
+  </section>
+  <button class="btn sky" data-a="vue-ready">Je suis prêt·e ! 👀</button>`;
+AFTER.vuePass = () => say(`Au tour de ${nameOf(curP())} ! Trouve le dessin qui est sur les deux cartes.`);
+VIEWS.vueGo = () => `
+  <div class="row2" style="align-items:center">
+    <div class="counter" id="vcnt" style="font-size:3rem">0</div>
+    <div class="bar"><i id="vbar"></i></div>
+  </div>
+  <div class="vwrap" id="vwrap"></div>`;
+AFTER.vueGo = () => {
+  hush(); SFX.go();
+  const dur = vueTime(curP()) * 1000, start = performance.now(), wrap = $('#vwrap');
+  let score = 0, lockUntil = 0, done = false, pair;
+  const deal = () => { pair = newPair(); wrap.innerHTML = vcard(pair.a) + vcard(pair.b); };
+  wrap.addEventListener('pointerdown', e => {
+    const b = e.target.closest('[data-s]'); if (!b || done) return;
+    e.preventDefault();
+    if (performance.now() < lockUntil) return;
+    if (b.dataset.s === pair.common) { score++; $('#vcnt').textContent = score; SFX.ding(); buzz(30); deal(); }
+    else {
+      SFX.buzzer(); buzz(120); lockUntil = performance.now() + 1000;
+      wrap.classList.remove('nope'); void wrap.offsetWidth; wrap.classList.add('nope');
+    }
+  });
+  deal();
+  every(() => {
+    const left = Math.max(0, dur - (performance.now() - start));
+    $('#vbar').style.width = (left / dur * 100) + '%';
+    if (left <= 0 && !done) { done = true; SFX.buzzer(); S.R.vue[S.R.order[S.R.step]] = score; later(() => go('vueDone'), 500); }
+  }, 50);
+};
+VIEWS.vueDone = () => {
+  const i = S.R.order[S.R.step], n = S.R.vue[i], last = S.R.step + 1 >= S.players.length;
+  return `
+    <div class="bigicon" aria-hidden="true">👀</div>
+    <section class="card center">
+      <div>${tag(S.players[i])}</div>
+      <div class="counter">${n}</div>
+      <p>paire${n > 1 ? 's' : ''} trouvée${n > 1 ? 's' : ''} !</p>
+    </section>
+    <button class="btn sky" data-a="vue-next">${last ? 'Le classement ! 🏆' : 'Joueur suivant ➜'}</button>`;
+};
+AFTER.vueDone = () => { const n = S.R.vue[S.R.order[S.R.step]]; say(`${n} paire${n > 1 ? 's' : ''} ! Bravo ${nameOf(curP())} !`); };
+
+/* ---------- Dis-en 3 ! ---------- */
+const troisP = () => S.players[S.R.order[S.R.step % S.players.length]];
+const troisTime = p => (hasKids() && hasGrown()) ? (p.kid ? 10 : 5) : 7;
+VIEWS.troisPass = () => `
+  <span class="eyebrow">🖐️ Tour ${S.R.step + 1} sur ${S.players.length * 2}</span>
+  <section class="card center">
+    <p>Passe le téléphone à</p>
+    <div>${tag(troisP())}</div>
+    <p style="font-size:1.25rem">Tu auras <b>${troisTime(troisP())} secondes</b> pour dire 3 réponses !</p>
+    <p class="tiny">Les autres écoutent et jugent.</p>
+  </section>
+  <button class="btn pink" data-a="trois-ready">Je suis prêt·e ! 🖐️</button>`;
+VIEWS.troisGo = () => `
+  <section class="card center">
+    <div class="secret" style="font-size:4.5rem" aria-hidden="true">${S.R.trois[0]}</div>
+    <p class="secret-text">${esc(S.R.trois[1])}</p>
+  </section>
+  <div class="big-num" id="tnum">…</div>
+  <button class="btn pink" data-a="trois-stop">J’en ai dit 3 ! ✋</button>`;
+AFTER.troisGo = () => {
+  say(S.R.trois[1] + ' !', true);
+  let left = troisTime(troisP());
+  later(() => {
+    const num = $('#tnum'); if (num) num.textContent = left; SFX.go();
+    every(() => {
+      left--;
+      const n = $('#tnum'); if (n) n.textContent = Math.max(left, 0);
+      if (left > 0) SFX.tick();
+      else { SFX.buzzer(); buzz(300); go('troisJudge'); }
+    }, 1000);
+  }, 1600);
+};
+VIEWS.troisJudge = () => `
+  <div class="bigicon" aria-hidden="true">🧑‍⚖️</div>
+  <h2 class="title">Les juges, alors ?</h2>
+  <section class="card center">
+    <div>${tag(troisP())}</div>
+    <p style="font-size:1.2rem">${esc(S.R.trois[1])}</p>
+  </section>
+  <div class="row2">
+    <button class="btn" data-a="trois-yes">✓ Réussi !</button>
+    <button class="btn white" data-a="trois-no">✗ Raté</button>
+  </div>`;
+AFTER.troisJudge = () => say(`Les juges : est-ce que ${nameOf(troisP())} a réussi ?`);
+function troisAdvance() {
+  S.R.step++;
+  if (S.R.step < S.players.length * 2) go('troisPass'); else endRound();
+}
+
+/* ---------- La Ferme Folle ---------- */
+VIEWS.fermeReady = () => circleReady('🐮', 'Ferme', 'ferme-go', 'Ouvrir la ferme ! 🐮', '');
+VIEWS.fermePlay = () => `
+  <p class="center" id="fmsg" style="font-size:1.25rem">Écoute bien… 👂</p>
+  <div class="farm">${FARM.map((a, i) => `<button class="fbtn" data-f="${i}" style="background:${a.c}" disabled aria-label="Animal ${i + 1}">${a.e}</button>`).join('')}</div>
+  <p class="tiny" id="fprog"></p>
+  <button class="btn white" id="flisten" hidden>▶️ Écouter la suite</button>
+  <section class="card center" style="padding:12px"><p>C’est au tour de</p><div id="holder">${tag(S.players[S.R.order[S.R.holder]])}</div></section>`;
+AFTER.fermePlay = () => {
+  const F = S.R.farm, btns = [...document.querySelectorAll('.fbtn')], msg = $('#fmsg'), listen = $('#flisten'), prog = $('#fprog');
+  const lock = v => btns.forEach(b => { b.disabled = v; });
+  const light = i => { const b = btns[i]; b.classList.add('lit'); FARM[i].s(); later(() => b.classList.remove('lit'), 380); };
+  const play = () => {
+    F.phase = 'watch'; lock(true); listen.hidden = true; hush();
+    msg.textContent = 'Écoute bien… 👂';
+    prog.textContent = `${F.seq.length} ${F.seq.length > 1 ? 'animaux' : 'animal'} à retenir`;
+    F.seq.forEach((a, k) => later(() => light(a), 600 + k * 650));
+    later(() => { F.phase = 'repeat'; F.pos = 0; lock(false); msg.textContent = 'À toi ! Refais la même suite 👆'; }, 600 + F.seq.length * 650);
+  };
+  $('.farm').addEventListener('click', e => {
+    const b = e.target.closest('[data-f]'); if (!b || F.phase !== 'repeat') return;
+    const i = +b.dataset.f; light(i);
+    if (i !== F.seq[F.pos]) {
+      F.phase = 'done'; lock(true); later(() => SFX.buzzer(), 250);
+      later(() => fail(S.R.order[S.R.holder], '🐮', 'MEUH-RATÉ !', 'La ferme s’est emmêlée chez', 'Encore une ferme ➜'), 900);
+      return;
+    }
+    F.pos++;
+    if (F.pos >= F.seq.length) {
+      F.phase = 'wait'; lock(true); F.seq.push(rnd(FARM.length));
+      later(() => SFX.ding(), 350);
+      nextHolder();
+      msg.textContent = `Bravo ! Passe le téléphone à ${nameOf(S.players[S.R.order[S.R.holder]])} 📱`;
+      listen.hidden = false;
+    }
+  });
+  listen.addEventListener('click', play);
+  play();
+};
+
+/* ---------- Jacques a dit ---------- */
+const jqText = it => it.j ? `Jacques a dit : ${it.o[1]} !` : `${it.o[1].charAt(0).toUpperCase() + it.o[1].slice(1)} !`;
+VIEWS.jacquesPlay = () => {
+  const J = S.R.jq, it = J.list[J.k];
+  return `
+    <span class="eyebrow">🙋 Ordre ${J.k + 1} sur ${J.list.length}</span>
+    <section class="card center">
+      <div class="secret" style="font-size:4.5rem" aria-hidden="true">${it.o[0]}</div>
+      <p class="order-card">${it.j ? '<span class="jq-yes">Jacques a dit :</span><br>' : ''}${esc(it.o[1])} !</p>
+      <p class="gage" id="jqhint" hidden>${it.j ? 'Jacques l’a dit ! Ceux qui ne l’ont pas fait sont attrapés 😏' : 'Jacques n’a rien dit ! Ceux qui ont bougé sont attrapés 😏'}</p>
+    </section>
+    <section class="card">
+      <span class="label">Qui s’est fait attraper ?</span>
+      <div class="pick">
+        ${S.players.map((p, i) => `<button class="btn" data-a="jq-pick" data-v="${i}" aria-pressed="false"><span class="e">${p.emoji}</span><span class="nm">${esc(nameOf(p))}</span></button>`).join('')}
+      </div>
+    </section>
+    <div class="row2">
+      <button class="btn white small" data-a="jq-again">🔁 Répéter</button>
+      <button class="btn red small" data-a="jq-next">${J.k + 1 < J.list.length ? 'Suivant ➜' : 'Résultats 🏆'}</button>
+    </div>`;
+};
+AFTER.jacquesPlay = () => {
+  S.R.jq.caught = new Set();
+  const it = S.R.jq.list[S.R.jq.k];
+  later(() => say(jqText(it), true), 300);
+  later(() => { const h = $('#jqhint'); if (h) h.hidden = false; }, 3200);
+};
+
 /* ---------- Scores ---------- */
 const MEDAL = ['🥇', '🥈', '🥉'];
 VIEWS.scores = () => {
@@ -1003,6 +1243,12 @@ VIEWS.scores = () => {
   }
   if (S.R.type === 'chrono' && S.R.ranking) {
     tapeRecap = `<p class="tiny center">${S.R.ranking.map(([i]) => `${S.players[i].emoji} ${fmt(S.R.times[i])} s`).join(' · ')}</p>`;
+  }
+  if (S.R.type === 'vue' && S.R.ranking) {
+    tapeRecap = `<p class="tiny center">${S.R.ranking.map(([i, c]) => `${S.players[i].emoji} ${c}`).join(' · ')} paires</p>`;
+  }
+  if (S.R.type === 'jacques' && S.R.ranking) {
+    tapeRecap = `<p class="tiny center">Attrapés : ${S.R.ranking.map(([i, c]) => `${S.players[i].emoji} ${c} fois`).join(' · ')}</p>`;
   }
   return `
     <span class="eyebrow">Après la manche ${S.round + 1} sur ${S.plan.length}</span>
@@ -1115,6 +1361,34 @@ const ACT = {
   'tape-ready'() { hush(); go('tapeCount'); },
   'tape-next'() { S.R.step++; if (S.R.step < S.players.length) go('tapePass'); else finishTape(); },
 
+  'vue-ready'() { hush(); go('vueGo'); },
+  'vue-next'() {
+    S.R.step++;
+    if (S.R.step < S.players.length) go('vuePass');
+    else finishRanked(Object.entries(S.R.vue).map(([i, c]) => [+i, c]), 'high');
+  },
+  'trois-ready'() { S.R.trois = draw('trois', TROIS); go('troisGo'); },
+  'trois-stop'() { SFX.ding(); go('troisJudge'); },
+  'trois-yes'() { give(S.R.order[S.R.step % S.players.length], 2); SFX.yay(); buzz(80); troisAdvance(); },
+  'trois-no'() { SFX.boing(); troisAdvance(); },
+  'ferme-go'() {
+    S.R.farm = { seq: [rnd(FARM.length), rnd(FARM.length)], pos: 0, phase: 'watch' };
+    S.R.holder = 0; go('fermePlay');
+  },
+  'jq-pick'(v, b) {
+    const c = S.R.jq.caught, i = +v;
+    c.has(i) ? c.delete(i) : c.add(i);
+    b.classList.toggle('on', c.has(i)); b.setAttribute('aria-pressed', c.has(i));
+    SFX.pop();
+  },
+  'jq-again'() { say(jqText(S.R.jq.list[S.R.jq.k]), true); },
+  'jq-next'() {
+    const J = S.R.jq;
+    J.caught.forEach(i => { J.errors[i] = (J.errors[i] || 0) + 1; });
+    J.k++;
+    if (J.k < J.list.length) go('jacquesPlay');
+    else finishRanked(S.players.map((_, i) => [i, J.errors[i] || 0]), 'low');
+  },
   'next-round'() {
     S.round++;
     if (S.round < S.plan.length) go('intro'); else go('drum');
