@@ -259,6 +259,21 @@ p { margin: 0; line-height: 1.4; }
 .jq-yes { color: var(--mint); -webkit-text-stroke: 1px var(--ink); }
 .big-num { font-family: var(--display); font-size: 6rem; text-align: center; line-height: 1; font-variant-numeric: tabular-nums; }
 
+/* ---------- Choix des mini-jeux ---------- */
+.gpick { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+.gtile {
+  display: flex; align-items: center; gap: 8px; text-align: left; min-width: 0;
+  font: inherit; font-size: 1rem; color: var(--ink); background: var(--paper);
+  border: 3px solid var(--ink); border-radius: 16px; padding: 8px 10px; cursor: pointer; position: relative;
+}
+.gtile .gi { font-size: 1.7rem; line-height: 1; flex: none; }
+.gtile .gn { overflow-wrap: anywhere; line-height: 1.15; }
+.gtile.on { background: var(--mint); box-shadow: 0 4px 0 var(--ink); }
+.gtile:not(.on) { opacity: .5; }
+.gtile:not(.on) .gi { filter: grayscale(1); }
+.gtile:focus-visible { outline: 4px solid var(--grape); outline-offset: 3px; }
+.warn { color: var(--tomato); font-size: .95rem; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
 }
@@ -385,6 +400,7 @@ const S = {
   players: [],
   rounds: 6,
   tts: true,
+  picked: null,   // mini-jeux choisis (null = tous)
   plan: [],
   round: 0,
   R: {},          // état de la manche en cours
@@ -397,8 +413,10 @@ function load() {
     const d = JSON.parse(localStorage.getItem('patate-party') || 'null');
     if (d && Array.isArray(d.players) && d.players.length >= 2) {
       S.players = d.players.map(p => ({ name: String(p.name || '').slice(0, 16), emoji: p.emoji || '🙂', kid: !!p.kid, score: 0 }));
-      if ([4, 6, 8, 11].includes(d.rounds)) S.rounds = d.rounds;
+      if ([0, 4, 6, 8].includes(d.rounds)) S.rounds = d.rounds;
       if (typeof d.tts === 'boolean') S.tts = d.tts;
+      if (d.rounds === 11) S.rounds = 0;
+      if (Array.isArray(d.picked)) S.picked = d.picked.filter(k => k in GAMES);
       return;
     }
   } catch (e) {}
@@ -407,7 +425,7 @@ function load() {
 function save() {
   try {
     localStorage.setItem('patate-party', JSON.stringify({
-      players: S.players.map(p => ({ name: p.name, emoji: p.emoji, kid: p.kid })), rounds: S.rounds, tts: S.tts
+      players: S.players.map(p => ({ name: p.name, emoji: p.emoji, kid: p.kid })), rounds: S.rounds, tts: S.tts, picked: S.picked
     }));
   } catch (e) {}
 }
@@ -550,27 +568,31 @@ function go(screen) {
   render();
   window.scrollTo(0, 0);
 }
+const keepScroll = fn => { const y = window.scrollY; fn(); window.scrollTo(0, y); };
 function render() {
   const fn = VIEWS[S.screen];
   $app.innerHTML = fn ? fn() : '';
   const after = AFTER[S.screen]; if (after) after();
 }
 
+const picked = () => (S.picked || Object.keys(GAMES)).filter(k => k in GAMES);
+const roundCount = () => S.rounds || picked().length;
 function buildPlan(n) {
-  const types = Object.keys(GAMES), plan = [];
+  const types = picked(), plan = [];
   while (plan.length < n) {
     let s = shuffle(types);
     if (plan.length && s[0] === plan[plan.length - 1]) s.push(s.shift());
     plan.push(...s);
   }
   const out = plan.slice(0, n);
-  if (!out.includes('patate')) out[rnd(n)] = 'patate';  // la patate est toujours de la fête
+  if (types.includes('patate') && !out.includes('patate')) out[rnd(n)] = 'patate';  // la patate est toujours de la fête
   return out;
 }
 function startGame() {
   S.players.forEach(p => { p.score = 0; if (!p.name.trim()) p.name = 'Joueur'; });
   save();
-  S.plan = buildPlan(S.rounds); S.round = 0;
+  if (!picked().length) return;
+  S.plan = buildPlan(roundCount()); S.round = 0;
   try { navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {}
   go('intro');
 }
@@ -621,18 +643,33 @@ VIEWS.setup = () => `
     ${S.players.length < 6 ? `<button class="btn white small" data-a="add">＋ Ajouter un joueur</button>` : ''}
   </section>
   <section class="card">
+    <span class="label">Les mini-jeux · touche pour choisir (${picked().length} sur ${Object.keys(GAMES).length})</span>
+    <div class="gpick">
+      ${Object.entries(GAMES).map(([k, g]) => {
+        const on = picked().includes(k);
+        return `<button class="gtile ${on ? 'on' : ''}" data-a="pick-game" data-v="${k}" aria-pressed="${on}"><span class="gi" aria-hidden="true">${g.icon}</span><span class="gn">${g.name}</span></button>`;
+      }).join('')}
+    </div>
+    <div class="chips">
+      <button class="chip" data-a="pick-all">✓ Tout choisir</button>
+      <button class="chip" data-a="pick-none">✗ Tout enlever</button>
+    </div>
+    ${picked().length ? '' : '<p class="warn">Choisis au moins un mini-jeu pour jouer !</p>'}
+  </section>
+  <section class="card">
     <span class="label">Combien de manches ?</span>
     <div class="chips">
-      ${[[4, 'Rapide · 4'], [6, 'Normal · 6'], [8, 'Long · 8'], [11, 'Tous les jeux · 11']].map(([v, l]) =>
+      ${[[4, 'Rapide · 4'], [6, 'Normal · 6'], [8, 'Long · 8'], [0, `Un de chaque · ${picked().length}`]].map(([v, l]) =>
         `<button class="chip ${S.rounds === v ? 'on' : ''}" data-a="rounds" data-v="${v}">${l}</button>`).join('')}
     </div>
+    ${S.rounds > picked().length && picked().length ? '<p class="tiny" style="text-align:left">Il y a plus de manches que de jeux choisis : certains jeux reviendront plusieurs fois.</p>' : ''}
     <span class="label">Voix</span>
     <div class="chips">
       <button class="chip ${S.tts ? 'on' : ''}" data-a="tts">${S.tts ? '🔊 Le téléphone lit les règles' : '🔇 Pas de voix'}</button>
     </div>
     <p class="tiny" style="text-align:left">La voix aide les plus petits qui ne lisent pas encore tout seuls.</p>
   </section>
-  <button class="btn red" data-a="start">JOUER ! 🎉</button>
+  <button class="btn red" data-a="start" ${picked().length ? '' : 'disabled'}>JOUER ! 🎉</button>
   <p class="tiny">Astuce : le bouton 💨 en bas, c’est pour rigoler à tout moment.</p>
 `;
 
@@ -1315,9 +1352,17 @@ const ACT = {
     S.players.push({ name: '', emoji: e, kid: false, score: 0 }); save(); render();
     const inp = document.getElementById('pname-' + (S.players.length - 1)); if (inp) inp.focus();
   },
-  rounds(v) { S.rounds = +v; save(); render(); },
+  rounds(v) { S.rounds = +v; save(); keepScroll(render); },
+  'pick-game'(k) {
+    const cur = picked(), i = cur.indexOf(k);
+    i >= 0 ? cur.splice(i, 1) : cur.push(k);
+    S.picked = Object.keys(GAMES).filter(g => cur.includes(g));
+    SFX.pop(); save(); keepScroll(render);
+  },
+  'pick-all'() { S.picked = null; SFX.pop(); save(); keepScroll(render); },
+  'pick-none'() { S.picked = []; SFX.pop(); save(); keepScroll(render); },
   tts() { S.tts = !S.tts; save(); render(); if (S.tts) say('Je lirai les règles à voix haute !'); else hush(); },
-  start() { ac(); SFX.yay(); startGame(); },
+  start() { if (!picked().length) return; ac(); SFX.yay(); startGame(); },
   reread() { const t = S.plan[S.round]; say(GAMES[t].name + '. ' + gameRules(t), true); },
   'round-go'() { hush(); startRound(); },
 
